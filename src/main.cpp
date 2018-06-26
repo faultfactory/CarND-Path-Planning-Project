@@ -245,8 +245,16 @@ int main() {
 						double dist_inc = 0.5;
 						for (int i = 0; i < 50; i++)
 						{
-							next_x_vals.push_back(car_x + (dist_inc * i) * cos(deg2rad(car_yaw)));
-							next_y_vals.push_back(car_y + (dist_inc * i) * sin(deg2rad(car_yaw)));
+							// Per video we want to be targeting the next point along path, not the current
+							double next_s = car_s + (i+1)*dist_inc;
+							// Vehicle center is 2 lanes from the 'double yellow' center of traffic
+							// Lane is 4 meters wide
+							double next_d = 6;
+							// Convert those two values to an x and y point using getXY. Return is a vector of coords;
+							vector<double> xy = getXY(next_s,next_d,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+
+							next_x_vals.push_back(xy.at(0));
+							next_y_vals.push_back(xy.at(1));
 						}
 
 						// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
