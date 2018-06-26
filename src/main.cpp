@@ -205,7 +205,7 @@ int main() {
 	double ref_vel = 49.5; 
 
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane,&ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -319,29 +319,59 @@ int main() {
 						vector<double> next_x_vals;
 						vector<double> next_y_vals;
 
-						// Re-use prior path points. 
+						// Re-use prior path points that were not consumed by the car. 
 
 						for (int i = 0; i<previous_path_x.size();i++)
 						{
-							next_x_vals.push_back(previous_path_x[i])
-							next_y_vals.push_back(previous_path_y[i])
+							next_x_vals.push_back(previous_path_x[i]);
+							next_y_vals.push_back(previous_path_y[i]);
 						}
+
+						// how to break the spline points; 
+						double target_x = 30.0;
+						double target_y = s(target_x);
+						double target_dist = sqrt((target_x*target_x)+(target_y*target_y));
 						
-
-
-						double dist_inc = 0.3;
-						for (int i = 0; i < 50; i++)
+						double x_add_on = 0; 
+						// Create configurable number for path points
+						int pathPtCount = 50; 
+						// Fill the rest of the points. 
+						for(int i  = 1; i <= pathPtCount-previous_path_x.size();i++)
 						{
-							// Per video we want to be targeting the next point along path, not the current
-							double next_s = car_s + (i+1)*dist_inc;
-							// Vehicle center is 2 lanes from the 'double yellow' center of traffic
-							// Lane is 4 meters wide
-							double next_d = 6;
-							// Convert those two values to an x and y point using getXY. Return is a vector of coords;
-							vector<double> xy = getXY(next_s,next_d,map_waypoints_s,map_waypoints_x,map_waypoints_y);
+							double N = (target_dist/(0.02*ref_vel/2.24));
+							double x_point = x_add_on + (target_x)/N;
+							double y_point = s(x_point);
+										
 
-							next_x_vals.push_back(xy.at(0));
-							next_y_vals.push_back(xy.at(1));
+							x_add_on = x_point; 
+
+							double x_ref = x_point;
+							double y_ref = y_point; 
+
+							//transform system back to world coordinates after defining path spline
+
+							x_point = (x_ref *cos(ref_yaw)-y_ref*sin(ref_yaw));
+							y_point = (x_ref *sin(ref_yaw)+y_ref*cos(ref_yaw));
+
+							x_point+=ref_x;
+							y_point+=ref_y;
+
+							next_x_vals.push_back(x_point);
+							next_y_vals.push_back(y_point);
+
+							// double dist_inc = 0.3;
+							// for (int i = 0; i < 50; i++)
+							// {
+							// 	// Per video we want to be targeting the next point along path, not the current
+							// 	double next_s = car_s + (i + 1) * dist_inc;
+							// 	// Vehicle center is 2 lanes from the 'double yellow' center of traffic
+							// 	// Lane is 4 meters wide
+							// 	double next_d = 6;
+							// 	// Convert those two values to an x and y point using getXY. Return is a vector of coords;
+							// 	vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+							// 	next_x_vals.push_back(xy.at(0));
+							// 	next_y_vals.push_back(xy.at(1));
 						}
 
 						// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
