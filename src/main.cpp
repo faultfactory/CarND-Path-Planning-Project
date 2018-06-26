@@ -202,8 +202,8 @@ int main() {
 
 	int lane = 1; 
 
-	double ref_vel = 49.5;
-
+	
+	double ref_vel = 0;
 	h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &lane, &ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 																															  uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
@@ -211,6 +211,8 @@ int main() {
 		// The 2 signifies a websocket event
 		//auto sdata = string(data).substr(0, length);
 		//cout << sdata << endl;
+
+		
 		if (length && length > 2 && data[0] == '4' && data[1] == '2')
 		{
 
@@ -245,12 +247,57 @@ int main() {
 					vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
 					int prev_size = previous_path_x.size();
-					/* 
-					json msgJson; 
 
-					vector<double> next_x_vals;
-					vector<double> next_y_vals;
-					*/
+					// collision avoidance code: 
+
+					if(prev_size>0)
+					{
+						car_s = end_path_s;
+					}
+
+					bool too_close = false; 
+
+					// find ref_v to use
+					for(int i = 0; i<sensor_fusion.size(); i++)
+					{
+						//car is in my lane
+						float d = sensor_fusion[i][6];
+						if((d<2+4*lane+2) && d > (2+4*lane-2))
+						{
+							double vx = sensor_fusion[i][3];
+							double vy = sensor_fusion[i][4];
+							double check_speed = sqrt(vx*vx+vy*vy);
+							double check_car_s = sensor_fusion[i][5];
+
+							check_car_s+=((double)prev_size*0.02*check_speed); 
+							
+							if(check_car_s>car_s)
+							{
+								//Calculate Time to colision
+								if (car_speed>check_speed)
+								{
+									double timeToCollision = (check_car_s-car_s)/(car_speed-check_speed);
+									if(timeToCollision<10)
+									{
+										too_close = true;
+									}
+								}
+								
+								
+							}
+
+						}
+
+					}
+
+					if(too_close)
+					{
+						rev_vel -= 0.224;
+					}
+					else if(rev_vel < 49.5);
+					{
+						ref_vel+=0.224;
+					}
 
 					// Create vector of new points to fil
 					vector<double> ptsx;
