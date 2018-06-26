@@ -242,7 +242,7 @@ int main() {
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-						double dist_inc = 0.5;
+						double dist_inc = 0.3;
 						for (int i = 0; i < 50; i++)
 						{
 							// Per video we want to be targeting the next point along path, not the current
