@@ -300,7 +300,33 @@ int main() {
 							ptsx.push_back(next_wp[0]);
 							ptsy.push_back(next_wp[1]);
 						}
-		
+
+						// Coordinate rotation to vehicle frame
+						for(int i = 0; i<ptsx.size();i++)
+						{
+							
+							double shift_x = ptsx[i]-ref_x;
+							double shift_y = ptsy[i]-ref_y;
+
+						 	ptsx[i]=(shift_x*cos(0-ref_yaw)-(shift_y)*sin(0-ref_yaw));
+             	ptsy[i]=(shift_x*sin(0-ref_yaw)+(shift_y)*cos(0-ref_yaw));
+						}
+
+						tk::spline s;
+						s.set_points(ptsx,ptsy);
+
+						// Create display spline. 
+						vector<double> next_x_vals;
+						vector<double> next_y_vals;
+
+						// Re-use prior path points. 
+
+						for (int i = 0; i<previous_path_x.size();i++)
+						{
+							next_x_vals.push_back(previous_path_x[i])
+							next_y_vals.push_back(previous_path_y[i])
+						}
+						
 
 
 						double dist_inc = 0.3;
