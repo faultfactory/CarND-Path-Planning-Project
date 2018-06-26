@@ -200,7 +200,12 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	int lane = 1; 
+
+	double ref_vel = 49.5; 
+
+
+  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -235,12 +240,68 @@ int main() {
           	double end_path_d = j[1]["end_path_d"];
 
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
-          	auto sensor_fusion = j[1]["sensor_fusion"];
+          	vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 
-          	json msgJson;
+						int prev_size = previous_path_x.size();
+						/* 
+          	json msgJson; 
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
+						*/
+						
+
+						// Create vector of new points to fil
+						vector<double> ptsx;
+						vector<double> ptsy;
+						 
+						// Find current car state; 
+						double ref_x = car_x; 
+						double ref_y = car_y;
+						double ref_yaw = deg2rad(car_yaw);
+
+
+						// Assure tangency for the current sate. 
+						// if the previous was almost empty reset 
+						if(prev_size<2)
+						{
+							// Generate two points that align with current state; 
+							double prev_car_x = car_x - cos(car_yaw);
+							double prev_car_y = car_y - sin(car_y);
+
+							ptsx.push_back(prev_car_x);
+							ptsx.push_back(car_x);
+
+							ptsy.push_back(prev_car_y);
+							ptsy.push_back(car_y);
+						}
+						else
+						{
+							ref_x=previous_path_x[prev_size-1];
+							ref_y=previous_path_y[prev_size-1];
+
+							double ref_x_prev = previous_path_x[prev_size-2];
+							double ref_y_prev = previous_path_y[prev_size-2];
+							ref_yaw = atan2(ref_y-ref_y_prev,ref_x-ref_x_prev);
+
+							ptsx.push_back(ref_x_prev);
+							ptsx.push_back(ref_x);
+
+							ptsy.push_back(ref_y_prev);
+							ptsy.push_back(ref_y);
+						}
+
+						int wPoints = 3;
+						int sIncrement = 30;
+						for (int i = 1; i <(wPoints+1);i++)
+						{
+							// This does not work unless you add lane to the function line
+							vector<double> next_wp = getXY(car_s+(sIncrement*i),(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);				
+							ptsx.push_back(next_wp[0]);
+							ptsy.push_back(next_wp[1]);
+						}
+		
+
 
 						double dist_inc = 0.3;
 						for (int i = 0; i < 50; i++)
