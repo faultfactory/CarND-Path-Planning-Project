@@ -271,12 +271,12 @@ int main() {
 
 							check_car_s+=((double)prev_size*0.02*check_speed); 
 							
-							if(check_car_s>car_s)
+							if(check_car_s>car_s && ((check_car_s-car_s)<30.0))
 							{
 								//Calculate Time to colision
-								if (car_speed>check_speed)
+								if ((car_speed*2.24) >check_speed)
 								{
-									double timeToCollision = (check_car_s-car_s)/(car_speed-check_speed);
+									double timeToCollision = (check_car_s-car_s)/((car_speed*2.24)-check_speed);
 									if(timeToCollision<10)
 									{
 										too_close = true;
@@ -285,16 +285,16 @@ int main() {
 								
 								
 							}
-
+ 
 						}
 
 					}
 
-					if(too_close)
+					if(too_close && ref_vel>0.0)
 					{
-						rev_vel -= 0.224;
+						ref_vel -= 0.224;
 					}
-					else if(rev_vel < 49.5);
+					else if(ref_vel < 49.5)
 					{
 						ref_vel+=0.224;
 					}
@@ -312,7 +312,7 @@ int main() {
 					// if the previous was almost empty reset
 					if (prev_size < 2)
 					{
-						// Generate two points that align with current state;
+						// Generate two points that align with c urrent state;
 						double prev_car_x = car_x - cos(car_yaw);
 						double prev_car_y = car_y - sin(car_yaw);
 
@@ -323,7 +323,7 @@ int main() {
 						ptsy.push_back(car_y);
 					}
 					else
-					{
+					{ 
 						ref_x = previous_path_x[prev_size - 1];
 						ref_y = previous_path_y[prev_size - 1];
 
