@@ -1,76 +1,49 @@
-#include "vehicles.hpp"
-#include "math.h"
+#ifndef VEHICLES
+#define VEHICLES
 
+#include "helpers.hpp"
+#include "json.hpp"
 
-VehicleFrame::VehicleFrame(json j){
-  // Creates vehicle frame for Ego Vehicle
-  // need to verify the output of json::parse() and adjust appropriately
-  id = -1;
-	x = j[1]["x"];
-	y = j[1]["y"];
-	s = j[1]["s"];
-	d = j[1]["d"];
-	yaw = j[1]["yaw"];
-	v_mag = (j[1]["speed"])*2.24; // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
-	lane = getLane(d);
-}
-
-VehicleFrame::VehicleFrame(vector<double> v){
-  // Creates vehicle frame for other vehicle
-  id = int(v[0]);
-	
-	x = j[1]["x"];
-	y = j[1]["y"];
-
-	double vx = v[3];
-	double vy = v[4];
-	
-	v_mag = sqrt(vx*vx+vy*vy);
-	yaw = atan2(vy,vx);
-	`
-	s = v[5];
-	d = v[6];
-	lane = getLane(d);
-}
-
-Vehicle::Vehicle(VehicleFrame vf){
-  buffer.push_back(vf);
-  estimating = false;
-}
-
-void Vehicle::addFrame(VehicleFrame vf)
-{
-  buffer.push_back(vf);
-  if(buffer.size()>estimationMin)
-  {
-    estimating = true;
-  }
-  if(buffer.size()>bufferMax)
-  {
-    buffer.pop();
-  }
-  if(estimating)
-  {
-    estimateValues();
-  }
+class VehicleFrame{
   
-}
+public:
+  int id;   // sensor fusion has an ID. I'm just going to set it to -1 for the ego car.
+  double x; // X position in m
+  double y; // Y position in m
+  double s; // Frenet Coordinate S
+  double d; // Frenet Coorindate d
+  double v_mag; // magnitude of velocity in m/s
+  double yaw; // yaw direction
+  int lane; //
+  
+  
+  VehicleFrame(json);                // Ego constructor.
+  VehicleFrame(std::vector<double>); //sensor fusion constructor
+};
 
-void Vehicle::estimateValues()
+class Vehicle:
 {
   
-  std::vector<double> s_dot_list;
-  std::vector<double> d_dot_list;
-  std::vector<double> s_dot_dot_list;
-  for(int i = 1; i<buffer.size(); i++)
-  {
-    s_dot_list.push_back(buffer[i].s-buffer[i-1].s);
-    d_dot_list.push_back(buffer[i].d-buffer[i-1].d);
-    if(i>1)
-    {
-      s_dot_dot_list.push_back(s_dot_list[i]-s_dot_list[i-1]);
-    }
-  }
+  const int bufferMax = 5;
+  const int estimationMin = 3;
+  std::vector<VehicleFrame> buffer;
+  public:
+  VehicleFrame(Vehicle);
   
+  //double world_yawrate;
+  //double world_acc;
   
-}
+  // These parameters might be most useful for determining collisions;
+  
+  bool estimating; // value to tell external members to use or to ignore these state values
+  double d_dot;
+  double s_dot;
+  double s_dot_dot;
+  
+  VehicleFrame predictForward(double deltaT);
+  VehicleFrame getMostRecentFrame();
+  void addFrame(VehicleFrame);
+  void estimateValues();
+};
+
+#endif

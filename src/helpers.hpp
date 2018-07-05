@@ -3,7 +3,7 @@
 
 #include <vector>
 
-int getLane(double d){return d%4;}
+int getLane(double d){return  d/4;}
 
 double distance(double x1, double y1, double x2, double y2);
 int ClosestWaypoint(double x, double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y);

@@ -2,7 +2,8 @@
 #include "math.h"
 
 
-VehicleFrame::VehicleFrame(json j){
+VehicleFrame::VehicleFrame(json j)
+{
   // Creates vehicle frame for Ego Vehicle
   // need to verify the output of json::parse() and adjust appropriately
   id = -1;
@@ -27,7 +28,7 @@ VehicleFrame::VehicleFrame(vector<double> v){
 	
 	v_mag = sqrt(vx*vx+vy*vy);
 	yaw = atan2(vy,vx);
-	`
+	
 	s = v[5];
 	d = v[6];
 	lane = getLane(d);
