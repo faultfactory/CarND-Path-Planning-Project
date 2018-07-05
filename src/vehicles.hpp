@@ -1,10 +1,13 @@
 #ifndef VEHICLES
 #define VEHICLES
 
+#include "math.h"
 #include "helpers.hpp"
 #include "json.hpp"
+#include <deque>
 
-class VehicleFrame{
+class VehicleFrame 
+{
   
 public:
   int id;   // sensor fusion has an ID. I'm just going to set it to -1 for the ego car.
@@ -17,18 +20,48 @@ public:
   int lane; //
   
   
-  VehicleFrame(json);                // Ego constructor.
-  VehicleFrame(std::vector<double>); //sensor fusion constructor
+  VehicleFrame(nlohmann::json j)
+    {
+      // Creates vehicle frame for Ego Vehicle
+      // need to verify the output of json::parse() and adjust appropriately
+      id = -1;
+    	x = j[1]["x"];
+    	y = j[1]["y"];
+    	s = j[1]["s"];
+    	d = j[1]["d"];
+    	yaw = j[1]["yaw"];
+    	v_mag = (j[1]["speed"]); 
+    	v_mag *= 2.24;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
+    	lane = getLane(d);
+    };                // Ego constructor.
+    
+    VehicleFrame(std::vector<double> v){
+        // Creates vehicle frame for other vehicle
+        id = int(v[0]);
+    	
+    	x = v[1];
+    	y = v[2];
+    
+    	double vx = v[3];
+    	double vy = v[4];
+    	
+    	v_mag = sqrt(vx*vx+vy*vy);
+    	yaw = atan2(vy,vx);
+    	
+    	s = v[5];
+    	d = v[6];
+    	lane = getLane(d);
+} //sensor fusion constructor
 };
 
-class Vehicle:
+class Vehicle
 {
   
   const int bufferMax = 5;
   const int estimationMin = 3;
-  std::vector<VehicleFrame> buffer;
+  std::deque<VehicleFrame> buffer;
   public:
-  VehicleFrame(Vehicle);
+  Vehicle(VehicleFrame);
   
   //double world_yawrate;
   //double world_acc;

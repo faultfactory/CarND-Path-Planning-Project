@@ -5,6 +5,11 @@
 constexpr double pi() { return M_PI; }
 using namespace std;
 
+int getLane(double d)
+{
+    return  d/4;
+}
+
 double distance(double x1, double y1, double x2, double y2)
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
@@ -132,4 +137,4 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 	return {x,y};
 
-}
+};

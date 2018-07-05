@@ -1,38 +1,21 @@
 #include "vehicles.hpp"
-#include "math.h"
 
 
-VehicleFrame::VehicleFrame(json j)
-{
-  // Creates vehicle frame for Ego Vehicle
-  // need to verify the output of json::parse() and adjust appropriately
-  id = -1;
-	x = j[1]["x"];
-	y = j[1]["y"];
-	s = j[1]["s"];
-	d = j[1]["d"];
-	yaw = j[1]["yaw"];
-	v_mag = (j[1]["speed"])*2.24; // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
-	lane = getLane(d);
-}
+//VehicleFrame::VehicleFrame(json::json j)
+//{
+//  // Creates vehicle frame for Ego Vehicle
+//  // need to verify the output of json::parse() and adjust appropriately
+//  id = -1;
+//	x = j[1]["x"];
+//	y = j[1]["y"];
+//	s = j[1]["s"];
+//	d = j[1]["d"];
+//	yaw = j[1]["yaw"];
+//	v_mag = (j[1]["speed"])*2.24; // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
+//	lane = getLane(d);
+//}
 
-VehicleFrame::VehicleFrame(vector<double> v){
-  // Creates vehicle frame for other vehicle
-  id = int(v[0]);
-	
-	x = j[1]["x"];
-	y = j[1]["y"];
 
-	double vx = v[3];
-	double vy = v[4];
-	
-	v_mag = sqrt(vx*vx+vy*vy);
-	yaw = atan2(vy,vx);
-	
-	s = v[5];
-	d = v[6];
-	lane = getLane(d);
-}
 
 Vehicle::Vehicle(VehicleFrame vf){
   buffer.push_back(vf);
@@ -42,13 +25,13 @@ Vehicle::Vehicle(VehicleFrame vf){
 void Vehicle::addFrame(VehicleFrame vf)
 {
   buffer.push_back(vf);
-  if(buffer.size()>estimationMin)
+  if(buffer.size() >= estimationMin)
   {
     estimating = true;
   }
   if(buffer.size()>bufferMax)
   {
-    buffer.pop();
+    buffer.pop_front();
   }
   if(estimating)
   {
