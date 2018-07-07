@@ -1,20 +1,5 @@
 #include "vehicles.hpp"
-
-
-//VehicleFrame::VehicleFrame(json::json j)
-//{
-//  // Creates vehicle frame for Ego Vehicle
-//  // need to verify the output of json::parse() and adjust appropriately
-//  id = -1;
-//	x = j[1]["x"];
-//	y = j[1]["y"];
-//	s = j[1]["s"];
-//	d = j[1]["d"];
-//	yaw = j[1]["yaw"];
-//	v_mag = (j[1]["speed"])*2.24; // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
-//	lane = getLane(d);
-//}
-
+#include <numeric>
 
 
 Vehicle::Vehicle(VehicleFrame vf){
@@ -56,5 +41,32 @@ void Vehicle::estimateValues()
     }
   }
   
+  // Some code referenced here: 
+  // https://stackoverflow.com/questions/7616511/
+  //calculate-mean-and-standard-deviation-from-a-vector-of-samples-in-c-using-boos
+  double s_dot_sum      = std::accumulate(s_dot_list.begin(), s_dot_list.end(), 0.0);
+  double s_dot_dot_sum  = std::accumulate(s_dot_dot_list.begin(), s_dot_dot_list.end(), 0.0);
+  double d_dot_sum      = std::accumulate(d_dot_list.begin(), d_dot_list.end(), 0.0);
   
+  s_dot = s_dot_sum/s_dot_list.size();
+  s_dot_dot = s_dot_dot_sum/s_dot_dot_list.size();
+  d_dot = d_dot_sum/d_dot_list.size();
+}
+
+VehicleFrame Vehicle::getMostRecentFrame()
+{
+    return buffer.back();
+}
+
+
+// provide an estimated state for the vehicle at time delta T from most recent frame. 
+VehicleFrame Vehicle::predictForward(double deltaT)
+{
+ // We will make some lazy assumptions with regard to velocity magnitude in this function as this data 
+ // is not stored and is used to check lane availability and adjacency.
+ VehicleFrame frameOut = getMostRecentFrame();
+ 
+ frameOut.s += s_dot*deltaT + s_dot_dot*deltaT*deltaT;
+ frameOut.d += d_dot*deltaT;
+ frameOut.lane = getLane(frameOut.d); 
 }
