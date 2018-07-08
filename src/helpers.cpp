@@ -144,10 +144,10 @@ double getMapYaw(double s, const vector<double> &maps_s, const vector<double> &m
     // returns the reference yaw value at the map for this location of s.
     std::vector<double> xy = getXY(s, 0.0, maps_s, maps_x, maps_y);
     int pt1 = ClosestWaypoint(xy.at(0), xy.at(1), maps_x, maps_y);
-    int pt2 = pt1+1; 
+    int pt2 = pt1+1;
     if (pt2 == maps_x.size())
     {
-        pt2 = 0; 
+        pt2 = 0;
     }
     // just leaving here for reference
 //    x1=maps_x.at(pt1);
@@ -155,6 +155,5 @@ double getMapYaw(double s, const vector<double> &maps_s, const vector<double> &m
 //    x2=maps_x.at(pt2);
 //    y2=maps_y.at(pt2);
     double roadYaw= atan2((maps_y.at(pt2)-maps_y.at(pt1)),(maps_x.at(pt2)-maps_x.at(pt1)));
-
     return roadYaw;
 }

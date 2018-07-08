@@ -6,7 +6,7 @@
 #include "json.hpp"
 #include <deque>
 
-class VehicleFrame 
+class VehicleFrame
 {
   
 public:
@@ -30,13 +30,14 @@ public:
     	s = j[1]["s"];
     	d = j[1]["d"];
     	yaw = j[1]["yaw"];
-    	v_mag = (j[1]["speed"]); 
+    	v_mag = (j[1]["speed"]);
     	v_mag *= 2.24;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
     	lane = getLane(d);
     };                // Ego constructor.
     
-    VehicleFrame(std::vector<double> v){
-        // Creates vehicle frame for other vehicle
+    VehicleFrame(std::vector<double> v)
+    {
+      // Creates vehicle frame for other vehicle
         id = int(v[0]);
     	
     	x = v[1];
@@ -51,11 +52,13 @@ public:
     	s = v[5];
     	d = v[6];
     	lane = getLane(d);
-} //sensor fusion constructor
+    } //sensor fusion construct
 };
 
 class Vehicle
 {
+  // I am aware that this should be abstracted into a parent and two subclasses.
+  // "God punishes those who optimze early"
   
   const int bufferMax = 5;
   const int estimationMin = 3;
@@ -63,20 +66,33 @@ class Vehicle
   public:
   Vehicle(VehicleFrame);
   
-  //double world_yawrate;
-  //double world_acc;
   
   // These parameters might be most useful for determining collisions;
-  
-  bool estimating; // value to tell external members to use or to ignore these state values
   double d_dot;
   double s_dot;
   double s_dot_dot;
   
+  bool estimating; // value to tell external members to use or to ignore these state values
+  bool updated; // tells Vehicle field whether this has been updated in this most recent frame
+  
   VehicleFrame predictForward(double deltaT);
-  VehicleFrame getMostRecentFrame();
+  VehicleFrame getMostRecentFrame() const;
+  void addEgoFrame(nlohmann::json j);
   void addFrame(VehicleFrame);
   void estimateValues();
+};
+
+class VehicleField
+{
+  const double searchAhead=100.0;
+  const double searchBehind=100.0;
+  const double max_s = 6945.554;
+  
+  
+  std::map<int,Vehicle> localCars;
+  
+  void updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> incomingData);
+  void resetUpdatedFlags();
 };
 
 #endif
