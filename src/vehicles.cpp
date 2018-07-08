@@ -86,7 +86,7 @@ void VehicleField::resetUpdatedFlags()
   }
 }
 
-void VehicleField::updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> incomingData)
+void VehicleField::updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> &incomingData)
 {
   double myS = egoVeh.getMostRecentFrame().s;
   // make a temporary vehicle
@@ -97,22 +97,22 @@ void VehicleField::updateLocalCars(const Vehicle &egoVeh,const std::vector<std::
   myS+=sCorrect;
   double highLim = myS + searchAhead;
   double lowLim = myS - searchBehind;
-  for(std::vector<std::vector<double>>::iterator i = incomingData.begin(); i != incomingData.end();i++)
+  for(auto i = incomingData.begin(); i != incomingData.end();i++)
   {
     VehicleFrame tmpVehFrm(*i);
     bool neighbor = ((tmpVehFrm.s+sCorrect) > lowLim) && ((tmpVehFrm.s+sCorrect) < highLim);
     if(neighbor)
     {
-      int id = tmpVehFrmId.id;
+      int id = tmpVehFrm.id;
       if(localCars.count(id)==0)
       {
-        localCars[id](tmpVehFrm);
+        localCars.emplace(std::make_pair(id,tmpVehFrm));
       }
       else
       {
-        localCars[id].addFrame(tmpVehFrm);
+        localCars.at(id).addFrame(tmpVehFrm);
       }
-      localCars[id].updated=true;
+      localCars.at(id).updated=true;
     }
   }
   
@@ -122,7 +122,7 @@ void VehicleField::updateLocalCars(const Vehicle &egoVeh,const std::vector<std::
   while(iter != localCars.end())
   {
     if(iter->second.updated = false)
-    {
+       {
       iter = localCars.erase(iter);
     }
     else

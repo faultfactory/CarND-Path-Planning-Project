@@ -91,7 +91,7 @@ class VehicleField
   
   std::map<int,Vehicle> localCars;
   
-  void updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> incomingData);
+  void updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> &incomingData);
   void resetUpdatedFlags();
 };
 
