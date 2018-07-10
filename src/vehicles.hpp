@@ -24,7 +24,7 @@ public:
     {
       // Creates vehicle frame for Ego Vehicle
       // need to verify the output of json::parse() and adjust appropriately
-      id = -1;
+        id = -1;
     	x = j[1]["x"];
     	y = j[1]["y"];
     	s = j[1]["s"];
@@ -65,6 +65,7 @@ class Vehicle
   std::deque<VehicleFrame> buffer;
   public:
   Vehicle(VehicleFrame);
+  Vehicle();
   
   
   // These parameters might be most useful for determining collisions;

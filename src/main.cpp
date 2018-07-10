@@ -10,6 +10,7 @@
 #include "json.hpp"
 #include "spline.h"
 #include "helpers.hpp"
+#include "vehicles.hpp"
 
 using namespace std;
 
@@ -75,11 +76,13 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-	int lane = 1; 
-
+	int lane = 1;
 	
+	Vehicle egoVeh;
 	double ref_vel = 0;
-	h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &lane, &ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	VehicleField extVehs;
+	
+	h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &lane, &ref_vel,&egoVeh ,&extVehs ](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 																															  uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
@@ -95,21 +98,23 @@ int main() {
 
 			if (s != "")
 			{
-				auto j = json::parse(s);
+				json j = json::parse(s);
 
 				string event = j[0].get<string>();
 
 				if (event == "telemetry")
 				{
 					// j[1] is the data JSON object
-
+          
 					// Main car's localization Data
-					double car_x = j[1]["x"];
-					double car_y = j[1]["y"];
-					double car_s = j[1]["s"];
-					double car_d = j[1]["d"];
-					double car_yaw = j[1]["yaw"];
-					double car_speed = j[1]["speed"];
+				// 	double car_x = j[1]["x"];
+				// 	double car_y = j[1]["y"];
+				// 	double car_s = j[1]["s"];
+				// 	double car_d = j[1]["d"];
+				// 	double car_yaw = j[1]["yaw"];
+				// 	double car_speed = j[1]["speed"];
+				  egoVeh.addEgoFrame(j);
+				  
 
 					// Previous path data given to the Planner
 					auto previous_path_x = j[1]["previous_path_x"];
@@ -120,17 +125,20 @@ int main() {
 
 					// Sensor Fusion Data, a list of all other cars on the same side of the road.
 					vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
-
+                    
+                    // how many points are remaining from prior provided path
 					int prev_size = previous_path_x.size();
-
-					// collision avoidance code: 
-
+					
+					// how many points were consumed during last cycle;
+                    int pointsConsumed = pathCount - prev_size;
+                                        
+					// collision avoidance code:
 					if(prev_size>0)
 					{
 						car_s = end_path_s;
 					}
 
-					bool too_close = false; 
+					bool too_close = false;
 
 					// find ref_v to use
 					for(int i = 0; i<sensor_fusion.size(); i++)
@@ -144,7 +152,7 @@ int main() {
 							double check_speed = sqrt(vx*vx+vy*vy);
 							double check_car_s = sensor_fusion[i][5];
 
-							check_car_s+=((double)prev_size*0.02*check_speed); 
+							check_car_s+=((double)prev_size*0.02*check_speed);
 							
 							if(check_car_s>car_s && ((check_car_s-car_s)<30.0))
 							{
@@ -198,7 +206,7 @@ int main() {
 						ptsy.push_back(car_y);
 					}
 					else
-					{ 
+					{
 						ref_x = previous_path_x[prev_size - 1];
 						ref_y = previous_path_y[prev_size - 1];
 
