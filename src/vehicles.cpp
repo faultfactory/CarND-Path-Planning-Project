@@ -1,7 +1,6 @@
 #include "vehicles.hpp"
 #include <numeric>
 
-Vehicle::Vehicle(){};
 
 Vehicle::Vehicle(VehicleFrame vf){
   buffer.push_back(vf);
