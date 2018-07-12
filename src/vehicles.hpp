@@ -66,6 +66,7 @@ class Vehicle
   public:
   Vehicle(VehicleFrame);
   
+  Vehicle();
   
   // These parameters might be most useful for determining collisions;
   double d_dot;
@@ -88,11 +89,12 @@ class VehicleField
   const double searchBehind=100.0;
   const double max_s = 6945.554;
   
-  
+  void resetUpdatedFlags();
   std::map<int,Vehicle> localCars;
   
+  public:
   void updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> &incomingData);
-  void resetUpdatedFlags();
+  
 };
 
 #endif
