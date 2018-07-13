@@ -13,7 +13,7 @@ using namespace std;
 
 class Track {
 public:
-    explicit Track(string map_file);
+    Track(std::string map_file);
     Track(const Track &track);
     virtual ~Track();
 

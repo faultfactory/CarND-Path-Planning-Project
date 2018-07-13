@@ -1,7 +1,8 @@
 #include "vehicles.hpp"
 #include <numeric>
+#include "tic_toc.h"
 
-
+Vehicle::Vehicle(){};
 Vehicle::Vehicle(VehicleFrame vf){
   buffer.push_back(vf);
   estimating = false;
@@ -79,21 +80,27 @@ VehicleFrame Vehicle::predictForward(double deltaT)
 
 void VehicleField::resetUpdatedFlags()
 {
+
+ std::cout<<"reset ";
+ tic();
+ 
   auto it = localCars.begin();
   while(it != localCars.end())
   {
     it->second.updated = false;
   }
+  toc();
 }
 
-void VehicleField::updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> &incomingData)
+void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData)
 {
-  double myS = egoVeh.getMostRecentFrame().s;
+  double myS = egoNow.s;
+
   // make a temporary vehicle
   // if the ego car is near the end or beginning of the loop, we will add a correction to all units of s;
   bool tooLow = (myS-searchBehind)<0.0;
   bool tooHigh = (myS + searchAhead)>max_s;
-  double sCorrect = (max_s/2)*(-1*tooHigh + tooLow);
+  double sCorrect = (max_s/2.0)*(-1.0*tooHigh + 1.0*tooLow);
   myS+=sCorrect;
   double highLim = myS + searchAhead;
   double lowLim = myS - searchBehind;
@@ -106,29 +113,68 @@ void VehicleField::updateLocalCars(const Vehicle &egoVeh,const std::vector<std::
       int id = tmpVehFrm.id;
       if(localCars.count(id)==0)
       {
-        localCars.emplace(std::make_pair(id,tmpVehFrm));
+        localCars.emplace(std::make_pair(id,Vehicle(tmpVehFrm)));
+        std::cout<<"+ ";
       }
       else
       {
         localCars.at(id).addFrame(tmpVehFrm);
+        std::cout<<"^ ";
       }
       localCars.at(id).updated=true;
     }
   }
-  
+ removeOutOfRangeCars();
+
+
+}
+
+void VehicleField::removeOutOfRangeCars()
+{
+  tic();
   //Cleaning out old vehicles. Referenced wisdom from C++ beasts at stack overflow
   // https://stackoverflow.com/questions/42819461/iterating-over-map-and-erasing-element/42820005#42820005
-  auto iter = localCars.begin();
-  while(iter != localCars.end())
+  std::cout<<"remove ";
+  if(localCars.size()!=0)
   {
-    if(iter->second.updated = false)
-       {
-      iter = localCars.erase(iter);
-    }
-    else
+    auto iter = localCars.begin();
+    while(iter != localCars.end())
     {
-      iter++;
+      if(iter->second.updated = false)
+      {
+        iter = localCars.erase(iter);
+        std::cout<<"- ";
+      }
+      else
+      {
+        iter++;
+      }
+      std::cout<<". ";
     }
+  toc();
   }
-  resetUpdatedFlags();
+  std::cout<<std::endl;
 }
+
+void VehicleField::checkLaneRight(const VehicleFrame &egoNow)
+{
+  double my_s = egoNow.s;
+  double my_lane = egoNow.lane;
+  if(my_lane == 2)
+  {
+    std::cout<<"Lane Right Unavailable"<<std::endl;
+  } 
+   for(auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+   {
+   
+    VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
+    if(tgtFrm.lane == my_lane+1)
+    {
+      if(tgtFrm.s<(my_s +2.0) && tgtFrm.s>(my_s-2.0))
+      {
+        std::cout<<"RIGHT LANE BLOCKED"<<std::endl;
+      }
+    }
+   }
+}
+

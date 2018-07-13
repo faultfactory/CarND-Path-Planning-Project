@@ -1,5 +1,5 @@
 project(Path_Planning)
-
+set(CMAKE_BUILD_TYPE Debug)
 cmake_minimum_required (VERSION 3.5)
 
 add_definitions(-std=c++11)

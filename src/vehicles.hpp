@@ -1,10 +1,11 @@
-#ifndef VEHICLES
-#define VEHICLES
-
 #include "math.h"
 #include "helpers.hpp"
 #include "json.hpp"
 #include <deque>
+#include <map>
+
+#ifndef VEHICLES
+#define VEHICLES
 
 class VehicleFrame
 {
@@ -29,9 +30,8 @@ public:
     	y = j[1]["y"];
     	s = j[1]["s"];
     	d = j[1]["d"];
-    	yaw = j[1]["yaw"];
-    	v_mag = (j[1]["speed"]);
-    	v_mag *= 2.24;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
+    	yaw = deg2rad(j[1]["yaw"]);
+    	v_mag *= 0.44704;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
     	lane = getLane(d);
     };                // Ego constructor.
     
@@ -88,13 +88,17 @@ class VehicleField
   const double searchAhead=100.0;
   const double searchBehind=100.0;
   const double max_s = 6945.554;
+
   
-  void resetUpdatedFlags();
   std::map<int,Vehicle> localCars;
-  
+  void resetUpdatedFlags();
+  void removeOutOfRangeCars();
   public:
-  void updateLocalCars(const Vehicle &egoVeh,const std::vector<std::vector<double>> &incomingData);
-  
+  void updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData);
+  void checkLaneRight(const VehicleFrame &egoNow);
+
 };
+
+
 
 #endif

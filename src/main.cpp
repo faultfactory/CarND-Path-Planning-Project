@@ -5,8 +5,8 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
+//#include "Eigen-3.3/Eigen/Core"
+//#include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 #include "spline.h"
 #include "helpers.hpp"
@@ -15,15 +15,13 @@
 
 using namespace std;
 
-extern Track track; 
+//extern Track track; 
 
 // for convenience
 using json = nlohmann::json;
 
 // For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
+
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -38,6 +36,7 @@ string hasData(string s) {
     return s.substr(b1, b2 - b1 + 2);
   }
   return "";
+  
 }
 
 
@@ -48,9 +47,9 @@ int main() {
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
 
   // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
+  std::string map_file_ = "../data/highway_map.csv";
   
-  Track track("../data/highway_map.csv");
+  Track track = Track(map_file_);
     
   double max_s = 6945.554;
 
@@ -59,40 +58,27 @@ int main() {
 	double ref_vel = 0;
 	VehicleField extVehs;
 	
-	h.onMessage([&track, &lane, &ref_vel, &egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-																															  uWS::OpCode opCode) {
+	h.onMessage([&track, &lane, &ref_vel, &egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
 		//auto sdata = string(data).substr(0, length);
 		//cout << sdata << endl;
-
-		
 		if (length && length > 2 && data[0] == '4' && data[1] == '2')
 		{
-
 			auto s = hasData(data);
 
 			if (s != "")
 			{
 				auto j = json::parse(s);
-
+				
+				
 				string event = j[0].get<string>();
 
 				if (event == "telemetry")
 				{
-					// j[1] is the data JSON object
-
-					// Main car's localization Data
-//					double car_x = j[1]["x"];
-//					double car_y = j[1]["y"];
-//					double car_s = j[1]["s"];
-//					double car_d = j[1]["d"];
-//					double car_yaw = j[1]["yaw"];
-//					double car_speed = j[1]["speed"];
-					
 				    egoVeh.addEgoFrame(j);
-				  
+					VehicleFrame egoNow = egoVeh.getMostRecentFrame();
 
 					// Previous path data given to the Planner
 					auto previous_path_x = j[1]["previous_path_x"];
@@ -104,83 +90,41 @@ int main() {
 					// Sensor Fusion Data, a list of all other cars on the same side of the road.
 					vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 					
-					extVehs.updateLocalCars(egoVeh,sensor_fusion);
-
+					extVehs.updateLocalCars(egoNow,sensor_fusion);
+					std::cout<<"updated local cars"<<std::endl;
 					int prev_size = previous_path_x.size();
 
 					// collision avoidance code: 
 
-					if(prev_size>0)
-					{
-						car_s = end_path_s;
-					}
-
 					bool too_close = false; 
 
 					// find ref_v to use
-					for(int i = 0; i<sensor_fusion.size(); i++)
-					{
-						//car is in my lane
-						float d = sensor_fusion[i][6];
-						if((d<2+4*lane+2) && d > (2+4*lane-2))
-						{
-							double vx = sensor_fusion[i][3];
-							double vy = sensor_fusion[i][4];
-							double check_speed = sqrt(vx*vx+vy*vy);
-							double check_car_s = sensor_fusion[i][5];
-
-							check_car_s+=((double)prev_size*0.02*check_speed); 
-							
-							if(check_car_s>car_s && ((check_car_s-car_s)<30.0))
-							{
-								//Calculate Time to colision
-								if ((car_speed*2.24) >check_speed)
-								{
-									double timeToCollision = (check_car_s-car_s)/((car_speed*2.24)-check_speed);
-									if(timeToCollision<10)
-									{
-										too_close = true;
-									}
-								}
-								
-								
-							}
  
-						}
-
-					}
-
-					if(too_close && ref_vel>0.0)
-					{
-						ref_vel -= 0.224;
-					}
-					else if(ref_vel < 49.5)
-					{
-						ref_vel+=0.224;
-					}
-
+					std::cout<<"CheckingLane"<<std::endl;
+					extVehs.checkLaneRight(egoNow);
+					
 					// Create vector of new points to fil
 					vector<double> ptsx;
 					vector<double> ptsy;
 
 					// Find current car state;
-					double ref_x = car_x;
-					double ref_y = car_y;
-					double ref_yaw = deg2rad(car_yaw);
+					double ref_x = egoVeh.getMostRecentFrame().x;
+					double ref_y = egoVeh.getMostRecentFrame().y;
+					double ref_yaw = egoVeh.getMostRecentFrame().yaw;
 
 					// Assure tangency for the current sate.
 					// if the previous was almost empty reset
 					if (prev_size < 2)
 					{
 						// Generate two points that align with c urrent state;
-						double prev_car_x = car_x - cos(car_yaw);
-						double prev_car_y = car_y - sin(car_yaw);
+						double prev_car_x = egoNow.x - cos(egoNow.yaw);
+						double prev_car_y = egoNow.y - sin(egoNow.yaw);
 
 						ptsx.push_back(prev_car_x);
-						ptsx.push_back(car_x);
+						ptsx.push_back(egoNow.x);
 
 						ptsy.push_back(prev_car_y);
-						ptsy.push_back(car_y);
+						ptsy.push_back(egoNow.y);
 					}
 					else
 					{ 
@@ -203,7 +147,7 @@ int main() {
 					for (int i = 1; i < (wPoints + 1); i++)
 					{
 						// This does not work unless you add lane to the function line
-						vector<double> next_wp = getXY(car_s + (sIncrement * i), (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+						vector<double> next_wp = track.sd_to_xy(egoNow.s + (sIncrement * i), (2 + 4 * lane));
 						ptsx.push_back(next_wp[0]);
 						ptsy.push_back(next_wp[1]);
 					}
