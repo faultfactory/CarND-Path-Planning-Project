@@ -91,7 +91,8 @@ int main() {
 					vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 					
 					extVehs.updateLocalCars(egoNow,sensor_fusion);
-					std::cout<<"updated local cars"<<std::endl;
+					
+					//std::cout<<"updated local cars"<<std::endl;
 					int prev_size = previous_path_x.size();
 
 					// collision avoidance code: 
@@ -100,7 +101,7 @@ int main() {
 
 					// find ref_v to use
  
-					std::cout<<"CheckingLane"<<std::endl;
+					//std::cout<<"CheckingLane"<<std::endl;
 					extVehs.checkLaneRight(egoNow);
 					
 					// Create vector of new points to fil
@@ -108,9 +109,9 @@ int main() {
 					vector<double> ptsy;
 
 					// Find current car state;
-					double ref_x = egoVeh.getMostRecentFrame().x;
-					double ref_y = egoVeh.getMostRecentFrame().y;
-					double ref_yaw = egoVeh.getMostRecentFrame().yaw;
+					double ref_x = egoNow.x;
+					double ref_y = egoNow.y;
+					double ref_yaw = egoNow.yaw;
 
 					// Assure tangency for the current sate.
 					// if the previous was almost empty reset
@@ -150,21 +151,34 @@ int main() {
 						vector<double> next_wp = track.sd_to_xy(egoNow.s + (sIncrement * i), (2 + 4 * lane));
 						ptsx.push_back(next_wp[0]);
 						ptsy.push_back(next_wp[1]);
+						
 					}
 
 					// Coordinate rotation to vehicle frame
-					for (int i = 0; i < ptsx.size(); i++)
-					{
+					std::vector<double> safex;
+					std::vector<double> safey;
 
+					double shift_x = ptsx[0] - ref_x;
+					double shift_y = ptsy[0] - ref_y;
+					
+					safex.push_back(shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw));
+					safey.push_back(shift_x * sin(0 - ref_yaw) + (shift_y)*cos(0 - ref_yaw));
+
+					for (int i = 1; i < ptsx.size(); i++)
+					{
+						
 						double shift_x = ptsx[i] - ref_x;
 						double shift_y = ptsy[i] - ref_y;
-
-						ptsx[i] = (shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw));
-						ptsy[i] = (shift_x * sin(0 - ref_yaw) + (shift_y)*cos(0 - ref_yaw));
+						double testx=shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw);
+						if(safex[i-1]!=testx)
+						{
+							safex.push_back(shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw));
+							safey.push_back(shift_x * sin(0 - ref_yaw) + (shift_y)*cos(0 - ref_yaw));
+						}
 					}
-
 					tk::spline s;
-					s.set_points(ptsx, ptsy);
+					s.set_points(safex, safey);
+					std::cout<<std::endl;
 
 					// Create display spline.
 					vector<double> next_x_vals;

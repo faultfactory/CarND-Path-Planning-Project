@@ -65,6 +65,18 @@ VehicleFrame Vehicle::getMostRecentFrame() const
     return buffer.back();
 }
 
+void Vehicle::resetVehicle()
+{
+ // We will make some lazy assumptions with regard to velocity magnitude in this function as this data
+ // is not stored and is used to check lane availability and adjacency.
+ buffer.clear();
+ updated = false;
+ d_dot = 0.0;
+ s_dot = 0.0;
+ s_dot_dot = 0.0;
+  
+}
+
 
 // provide an estimated state for the vehicle at time delta T from most recent frame.
 VehicleFrame Vehicle::predictForward(double deltaT)
@@ -78,19 +90,8 @@ VehicleFrame Vehicle::predictForward(double deltaT)
  frameOut.lane = getLane(frameOut.d);
 }
 
-void VehicleField::resetUpdatedFlags()
-{
 
- std::cout<<"reset ";
- tic();
- 
-  auto it = localCars.begin();
-  while(it != localCars.end())
-  {
-    it->second.updated = false;
-  }
-  toc();
-}
+
 
 void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData)
 {
@@ -108,13 +109,13 @@ void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<
   {
     VehicleFrame tmpVehFrm(*i);
     bool neighbor = ((tmpVehFrm.s+sCorrect) > lowLim) && ((tmpVehFrm.s+sCorrect) < highLim);
+    int id = tmpVehFrm.id;
     if(neighbor)
     {
-      int id = tmpVehFrm.id;
       if(localCars.count(id)==0)
       {
         localCars.emplace(std::make_pair(id,Vehicle(tmpVehFrm)));
-        std::cout<<"+ ";
+       // std::cout<<"+ ";
       }
       else
       {
@@ -123,38 +124,21 @@ void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<
       }
       localCars.at(id).updated=true;
     }
-  }
- removeOutOfRangeCars();
-
-
-}
-
-void VehicleField::removeOutOfRangeCars()
-{
-  tic();
-  //Cleaning out old vehicles. Referenced wisdom from C++ beasts at stack overflow
-  // https://stackoverflow.com/questions/42819461/iterating-over-map-and-erasing-element/42820005#42820005
-  std::cout<<"remove ";
-  if(localCars.size()!=0)
-  {
-    auto iter = localCars.begin();
-    while(iter != localCars.end())
+    else
     {
-      if(iter->second.updated = false)
+      if(localCars.count(id)!=0)
       {
-        iter = localCars.erase(iter);
-        std::cout<<"- ";
+        if(localCars.at(id).updated==true)
+        {
+          localCars.at(id).resetVehicle();
+          std::cout<<"r ";
+        }
       }
-      else
-      {
-        iter++;
-      }
-      std::cout<<". ";
+      
     }
-  toc();
-  }
-  std::cout<<std::endl;
+  } 
 }
+
 
 void VehicleField::checkLaneRight(const VehicleFrame &egoNow)
 {
