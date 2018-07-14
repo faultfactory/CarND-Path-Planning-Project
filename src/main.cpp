@@ -55,10 +55,11 @@ int main() {
 
 	int lane = 1; 
 	Vehicle egoVeh;
-	double ref_vel = 0;
+	double ref_vel = 0.0;
+	double tgt_vel = 0.0;
 	VehicleField extVehs(&egoVeh);
 	
-	h.onMessage([&track, &lane, &ref_vel, &egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
+	h.onMessage([&track, &lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
@@ -95,24 +96,21 @@ int main() {
 					//std::cout<<"updated local cars"<<std::endl;
 					int prev_size = previous_path_x.size();
 
-					// collision avoidance code: 
 
-					bool too_close = false; 
-
-					if(too_close && ref_vel>0.0)
-					{
-						ref_vel -= 0.224;
-					}
-					else if(ref_vel < 49.5)
-					{
-						ref_vel+=0.224;
-					}
-					// find ref_v to use
- 
-					//std::cout<<"CheckingLane"<<std::endl;
 					extVehs.checkLaneRightCurrent(egoNow);
 					extVehs.checkLaneLeftCurrent(egoNow);
-					std::cout<<" "<<extVehs.getFowardCar(1);
+					int ahead_id = extVehs.getFowardCar(1);
+					if(ahead_id != -1)
+					{
+						std::cout<<ahead_id<<" "<<extVehs.getFrenetTimeToCollision(ahead_id);
+					}
+						// collision avoidance code: 
+
+					bool too_close = false; 
+					tgt_vel = 49.5;
+
+					//std::cout<<"CheckingLane"<<std::endl;
+
 					// Create vector of new points to fil
 					vector<double> ptsx;
 					vector<double> ptsy;
@@ -187,7 +185,7 @@ int main() {
 					}
 					tk::spline s;
 					s.set_points(safex, safey);
-					std::cout<<std::endl;
+					//std::cout<<std::endl;
 
 					// Create display spline.
 					vector<double> next_x_vals;
@@ -212,6 +210,20 @@ int main() {
 					// Fill the rest of the points.
 					for (int i = 1; i <= pathPtCount - previous_path_x.size(); i++)
 					{
+						double veldiff = ref_vel-tgt_vel;
+						bool change = fabs(veldiff)>vel_inc;
+						if(change)
+						{
+							if(veldiff<vel_inc)
+							{
+								ref_vel+=vel_inc;
+							}
+							else if(veldiff>vel_inc)
+							{
+								ref_vel-=vel_inc;
+							}
+						} 
+						//std::cout<<ref_vel<<" ";
 						double N = (target_dist / (0.02 * ref_vel / 2.24));
 						double x_point = x_add_on + (target_x) / N;
 						double y_point = s(x_point);

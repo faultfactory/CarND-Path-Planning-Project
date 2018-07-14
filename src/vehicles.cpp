@@ -142,20 +142,22 @@ void VehicleField::checkLaneRightCurrent(const VehicleFrame &egoNow)
   double my_lane = egoNow.lane;
   if(my_lane == 2)
   {
-    std::cout<<"Lane Right Unavailable"<<std::endl;
-  } 
-   for(auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
-   {
-   
-    VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
-    if(tgtFrm.lane == my_lane+1)
+    std::cout << "Lane Right Unavailable" << std::endl;
+  }
+  for (auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+  {
+    if (car_iter->second.updated)
     {
-      if(tgtFrm.s<(my_s +4.0) && tgtFrm.s>(my_s-4.0))
+      VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
+      if (tgtFrm.lane == my_lane + 1)
       {
-        std::cout<<"RIGHT LANE BLOCKED"<<std::endl;
+        if (tgtFrm.s < (my_s + 4.0) && tgtFrm.s > (my_s - 4.0))
+        {
+          std::cout << "RIGHT LANE BLOCKED" << std::endl;
+        }
       }
     }
-   }
+  }
 }
 
 void VehicleField::checkLaneLeftCurrent(const VehicleFrame &egoNow)
@@ -164,21 +166,23 @@ void VehicleField::checkLaneLeftCurrent(const VehicleFrame &egoNow)
   double my_lane = egoNow.lane;
   if(my_lane == 0)
   {
-    std::cout<<"Lane Left Unavailable"<<std::endl;
-  } 
-   for(auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
-   {
-   
-    VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
-    if(tgtFrm.lane == my_lane-1)
+    std::cout << "Lane Left Unavailable" << std::endl;
+  }
+  for (auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+  {
+    if (car_iter->second.updated)
     {
-      double s_rel = s_relative(my_s,tgtFrm.s);
-      if(s_rel<4.0 && s_rel>-4.0)
+      VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
+      if (tgtFrm.lane == my_lane - 1)
       {
-        std::cout<<"LEFT LANE BLOCKED"<<std::endl;
+        double s_rel = s_relative(my_s, tgtFrm.s);
+        if (s_rel < 4.0 && s_rel > -4.0)
+        {
+          std::cout << "LEFT LANE BLOCKED" << std::endl;
+        }
       }
     }
-   }
+  }
 }
 
 int VehicleField::getFowardCar(int lane)
@@ -201,4 +205,40 @@ int VehicleField::getFowardCar(int lane)
     }
    }
   return fwdId;
+}
+
+double VehicleField::getFrenetTimeToCollision(int id)
+{
+  if (ego_ptr->estimating==false)
+  {
+    return 999;
+  }
+  else if(localCars.find(id)->second.estimating==false)
+  {
+    return 999;
+  }
+  else
+  {
+    // create a polynomial comprised of the difference and solve for roots
+    auto tgtPtr = localCars.find(id);
+    double a = tgtPtr->second.s_dot_dot - ego_ptr->s_dot_dot;
+    double b = tgtPtr->second.s_dot - ego_ptr->s_dot;
+    double c = -1*tgtPtr->second.s_rel;
+
+    double discriminant = b*b - 4*a*c;
+    if (discriminant > 0)
+    {
+      cout << "Roots are real and different." << endl;
+    }
+    else if (discriminant == 0)
+    {
+      cout << "Roots are real and same." << endl;
+    }
+    else
+    {
+
+      cout << "Roots are complex and different." << endl;
+    }
+  }
+
 }

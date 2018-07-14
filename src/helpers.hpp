@@ -3,6 +3,7 @@
 #include <math.h>
 #include <vector>
 
+constexpr double vel_inc = 0.224;
 constexpr double max_s = 6945.554;
 constexpr double pi() { return M_PI; }
 inline double deg2rad(double x) { return x * pi() / 180; }

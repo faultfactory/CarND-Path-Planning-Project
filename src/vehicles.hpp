@@ -105,6 +105,7 @@ class VehicleField
   void checkLaneRightCurrent(const VehicleFrame &egoNow);
   void checkLaneLeftCurrent(const VehicleFrame &egoNow);
   int getFowardCar(int lane);
+  double getFrenetTimeToCollision(int id);
 };
 
 
