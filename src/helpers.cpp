@@ -5,6 +5,8 @@
 
 using namespace std;
 
+
+
 int getLane(double d)
 {
     return  d/4;
@@ -60,6 +62,31 @@ int NextWaypoint(double x, double y, double theta, const std::vector<double> &ma
   }
 
   return closestWaypoint;
+}
+
+double s_relative(double egoS, double tgtS)
+{
+	double diff = tgtS-egoS;
+	if (diff>0 && diff<(max_s/2))
+	{
+		//car is 'more' ahead. show positive
+		return diff;
+	}
+	else if(diff>0 && diff>(max_s/2))
+	{
+		// car is 'more' behind. show negative
+		return diff-max_s;
+	}
+	else if(diff<0 && diff>(-max_s/2))
+	{
+		// car is more behind. show negative;
+		return diff;
+	}
+	else if(diff<0 && diff<(-max_s/2))
+	{
+		// car is more ahead. show positive;
+		return diff+max_s;
+	}
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates

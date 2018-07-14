@@ -96,19 +96,12 @@ VehicleFrame Vehicle::predictForward(double deltaT)
 void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData)
 {
   double myS = egoNow.s;
-
-  // make a temporary vehicle
-  // if the ego car is near the end or beginning of the loop, we will add a correction to all units of s;
-  bool tooLow = (myS-searchBehind)<0.0;
-  bool tooHigh = (myS + searchAhead)>max_s;
-  double sCorrect = (max_s/2.0)*(-1.0*tooHigh + 1.0*tooLow);
-  myS+=sCorrect;
-  double highLim = myS + searchAhead;
-  double lowLim = myS - searchBehind;
   for(auto i = incomingData.begin(); i != incomingData.end();i++)
   {
     VehicleFrame tmpVehFrm(*i);
-    bool neighbor = ((tmpVehFrm.s+sCorrect) > lowLim) && ((tmpVehFrm.s+sCorrect) < highLim);
+    
+    double s_rel = s_relative(egoNow.s,tmpVehFrm.s);
+    bool neighbor = (s_rel < searchAhead) && (s_rel > searchBehind);
     int id = tmpVehFrm.id;
     if(neighbor)
     {
@@ -118,7 +111,7 @@ void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<
        // std::cout<<"+ ";
       }
       else
-      {
+      { 
         localCars.at(id).addFrame(tmpVehFrm);
         std::cout<<"^ ";
       }

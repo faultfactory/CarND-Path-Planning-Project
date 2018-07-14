@@ -85,16 +85,16 @@ class Vehicle
 
 class VehicleField
 {
-  const double searchAhead=200.0;
-  const double searchBehind=200.0;
+  const double searchAhead=150.0;
+  const double searchBehind=-150.0;
   const double max_s = 6945.554;
 
   
   std::map<int,Vehicle> localCars;
 
-  void removeOutOfRangeCars();
+
   public:
-  void resetUpdatedFlags();
+
   void updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData);
   void checkLaneRight(const VehicleFrame &egoNow);
 
