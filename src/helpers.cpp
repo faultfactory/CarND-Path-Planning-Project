@@ -185,36 +185,24 @@ double getMapYaw(double s, const vector<double> &maps_s, const vector<double> &m
     return roadYaw;
 }
 
-double getRoots(double a, double b, double c)
+std::vector<double> getRoots(double a, double b, double c,double discriminant)
 {
 // referenced from: 
 // https://www.programiz.com/cpp-programming/examples/quadratic-roots
-	double x1, x2, discriminant, realPart, imaginaryPart;
-    double roots[2];
-    discriminant = b*b - 4*a*c;
+	double x1, x2;
+    std::vector<double> roots;
     
     if (discriminant > 0) {
         x1 = (-b + sqrt(discriminant)) / (2*a);
         x2 = (-b - sqrt(discriminant)) / (2*a);
-        cout << "Roots are real and different." << endl;
-        cout << "x1 = " << x1 << endl;
-        cout << "x2 = " << x2 << endl;
     }
     
     else if (discriminant == 0) {
-        cout << "Roots are real and same." << endl;
         x1 = (-b + sqrt(discriminant)) / (2*a);
-        cout << "x1 = x2 =" << x1 << endl;
+        x2=x1;
     }
-
-    else {
-        realPart = -b/(2*a);
-        imaginaryPart =sqrt(-discriminant)/(2*a);
-        cout << "Roots are complex and different."  << endl;
-        cout << "x1 = " << realPart << "+" << imaginaryPart << "i" << endl;
-        cout << "x2 = " << realPart << "-" << imaginaryPart << "i" << endl;
-    }
-
-    return 0;
+	roots.push_back(x1);roots.push_back(x2);
+	return roots;
 }
 
+  
