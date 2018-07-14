@@ -15,7 +15,7 @@
 
 using namespace std;
 
-//extern Track track; 
+extern Track track;
 
 // for convenience
 using json = nlohmann::json;
@@ -39,7 +39,7 @@ string hasData(string s) {
   
 }
 
-
+Track track = Track("../data/highway_map.csv");
 
 int main() {
   uWS::Hub h;
@@ -47,16 +47,16 @@ int main() {
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
 
   // Waypoint map to read from
-  std::string map_file_ = "../data/highway_map.csv";
+  ///std::string map_file_ = ;
   
-  Track track = Track(map_file_);
+  
     
   double max_s = 6945.554;
 
 	int lane = 1; 
 	Vehicle egoVeh;
 	double ref_vel = 0;
-	VehicleField extVehs;
+	VehicleField extVehs(&egoVeh);
 	
 	h.onMessage([&track, &lane, &ref_vel, &egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
@@ -99,11 +99,20 @@ int main() {
 
 					bool too_close = false; 
 
+					if(too_close && ref_vel>0.0)
+					{
+						ref_vel -= 0.224;
+					}
+					else if(ref_vel < 49.5)
+					{
+						ref_vel+=0.224;
+					}
 					// find ref_v to use
  
 					//std::cout<<"CheckingLane"<<std::endl;
-					extVehs.checkLaneRight(egoNow);
-					
+					extVehs.checkLaneRightCurrent(egoNow);
+					extVehs.checkLaneLeftCurrent(egoNow);
+					std::cout<<" "<<extVehs.getFowardCar(1);
 					// Create vector of new points to fil
 					vector<double> ptsx;
 					vector<double> ptsy;

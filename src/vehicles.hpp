@@ -3,9 +3,12 @@
 #include "json.hpp"
 #include <deque>
 #include <map>
+#include "track.h"
 
 #ifndef VEHICLES
 #define VEHICLES
+
+extern Track track;
 
 class VehicleFrame
 {
@@ -14,7 +17,7 @@ public:
   int id;   // sensor fusion has an ID. I'm just going to set it to -1 for the ego car.
   double x; // X position in m
   double y; // Y position in m
-  double s; // Frenet Coordinate S
+  double s; // Frenet Coordinate 
   double d; // Frenet Coorindate d
   double v_mag; // magnitude of velocity in m/s
   double yaw; // yaw direction
@@ -48,7 +51,7 @@ public:
     	
     	v_mag = sqrt(vx*vx+vy*vy);
     	yaw = atan2(vy,vx);
-    	
+    
     	s = v[5];
     	d = v[6];
     	lane = getLane(d);
@@ -69,6 +72,7 @@ class Vehicle
   Vehicle();
   void resetVehicle();
   // These parameters might be most useful for determining collisions;
+  double s_rel; // Relative s coordinate; 
   double d_dot;
   double s_dot;
   double s_dot_dot;
@@ -85,19 +89,22 @@ class Vehicle
 
 class VehicleField
 {
+  Vehicle* ego_ptr;
+ 
+
   const double searchAhead=150.0;
   const double searchBehind=-150.0;
   const double max_s = 6945.554;
 
-  
   std::map<int,Vehicle> localCars;
-
-
   public:
-
+ VehicleField(Vehicle* ep){
+    ego_ptr=ep;
+  }
   void updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData);
-  void checkLaneRight(const VehicleFrame &egoNow);
-
+  void checkLaneRightCurrent(const VehicleFrame &egoNow);
+  void checkLaneLeftCurrent(const VehicleFrame &egoNow);
+  int getFowardCar(int lane);
 };
 
 

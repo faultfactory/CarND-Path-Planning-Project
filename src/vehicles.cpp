@@ -2,6 +2,8 @@
 #include <numeric>
 #include "tic_toc.h"
 
+
+
 Vehicle::Vehicle(){};
 Vehicle::Vehicle(VehicleFrame vf){
   buffer.push_back(vf);
@@ -74,9 +76,9 @@ void Vehicle::resetVehicle()
  d_dot = 0.0;
  s_dot = 0.0;
  s_dot_dot = 0.0;
+ s_rel = 9999;
   
 }
-
 
 // provide an estimated state for the vehicle at time delta T from most recent frame.
 VehicleFrame Vehicle::predictForward(double deltaT)
@@ -88,14 +90,17 @@ VehicleFrame Vehicle::predictForward(double deltaT)
  frameOut.s += s_dot*deltaT + s_dot_dot*deltaT*deltaT;
  frameOut.d += d_dot*deltaT;
  frameOut.lane = getLane(frameOut.d);
+ std::vector<double> xyvxvy = track.sd_to_xyv(frameOut.s,frameOut.d,s_dot,d_dot);
+ frameOut.x = xyvxvy[0];
+ frameOut.y = xyvxvy[1];
+ frameOut.v_mag = sqrt(xyvxvy[2]*xyvxvy[2]+xyvxvy[3]*xyvxvy[3]);
+ frameOut.yaw = atan2(xyvxvy[3],xyvxvy[2]);
 }
-
-
-
 
 void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData)
 {
-  double myS = egoNow.s;
+  double myS = ego_ptr->getMostRecentFrame().s;
+  //double myS = egoNow.s;
   for(auto i = incomingData.begin(); i != incomingData.end();i++)
   {
     VehicleFrame tmpVehFrm(*i);
@@ -108,14 +113,14 @@ void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<
       if(localCars.count(id)==0)
       {
         localCars.emplace(std::make_pair(id,Vehicle(tmpVehFrm)));
-       // std::cout<<"+ ";
       }
       else
       { 
         localCars.at(id).addFrame(tmpVehFrm);
-        std::cout<<"^ ";
+
       }
       localCars.at(id).updated=true;
+      localCars.at(id).s_rel=s_rel;
     }
     else
     {
@@ -124,16 +129,14 @@ void VehicleField::updateLocalCars(const VehicleFrame &egoNow,const std::vector<
         if(localCars.at(id).updated==true)
         {
           localCars.at(id).resetVehicle();
-          std::cout<<"r ";
         }
       }
-      
     }
   } 
 }
 
 
-void VehicleField::checkLaneRight(const VehicleFrame &egoNow)
+void VehicleField::checkLaneRightCurrent(const VehicleFrame &egoNow)
 {
   double my_s = egoNow.s;
   double my_lane = egoNow.lane;
@@ -147,7 +150,7 @@ void VehicleField::checkLaneRight(const VehicleFrame &egoNow)
     VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
     if(tgtFrm.lane == my_lane+1)
     {
-      if(tgtFrm.s<(my_s +2.0) && tgtFrm.s>(my_s-2.0))
+      if(tgtFrm.s<(my_s +4.0) && tgtFrm.s>(my_s-4.0))
       {
         std::cout<<"RIGHT LANE BLOCKED"<<std::endl;
       }
@@ -155,3 +158,47 @@ void VehicleField::checkLaneRight(const VehicleFrame &egoNow)
    }
 }
 
+void VehicleField::checkLaneLeftCurrent(const VehicleFrame &egoNow)
+{
+  double my_s = egoNow.s;
+  double my_lane = egoNow.lane;
+  if(my_lane == 0)
+  {
+    std::cout<<"Lane Left Unavailable"<<std::endl;
+  } 
+   for(auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+   {
+   
+    VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
+    if(tgtFrm.lane == my_lane-1)
+    {
+      double s_rel = s_relative(my_s,tgtFrm.s);
+      if(s_rel<4.0 && s_rel>-4.0)
+      {
+        std::cout<<"LEFT LANE BLOCKED"<<std::endl;
+      }
+    }
+   }
+}
+
+int VehicleField::getFowardCar(int lane)
+{
+  double fwdDist = 9999.0;
+  int fwdId = -1;
+  for(auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+   {
+    if(lane == car_iter->second.getMostRecentFrame().lane)
+    {
+      double s_rel = car_iter->second.s_rel;
+      if(s_rel>0) //if the car is ahead of mine
+      {
+        if(s_rel<fwdDist) // but closer than the fwdDist;
+        {
+          fwdDist = s_rel;
+          fwdId = car_iter->first;
+        }
+      }
+    }
+   }
+  return fwdId;
+}
