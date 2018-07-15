@@ -56,7 +56,7 @@ int main() {
 	int lane = 1; 
 	Vehicle egoVeh;
 	double ref_vel = 0.0;
-	double tgt_vel = 0.0;
+	double tgt_vel = 22.1;
 	VehicleField extVehs(&egoVeh);
 	
 	h.onMessage([&track, &lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
@@ -97,17 +97,16 @@ int main() {
 					int prev_size = previous_path_x.size();
 
 					
-					tgt_vel = 22.1;
+					
 
-					extVehs.checkLaneRightCurrent(egoNow);
-					extVehs.checkLaneLeftCurrent(egoNow);
+					//extVehs.checkLaneRightCurrent(egoNow);
+					//extVehs.checkLaneLeftCurrent(egoNow);
 					int ahead_id = extVehs.getFowardCar(1);
 					if(ahead_id != -1)
 					{	
 						double ttc = extVehs.getFrenetTimeToCollision(ahead_id);
 						if(ttc>0)
-						{
-							std::cout<<"ttc "<<ttc<<std::endl;
+							std::cout<<egoNow.s<<" "<<ahead_id<<" ttc "<<ttc<<std::endl;
 						}
 						if(ttc<12.0)
 						{
@@ -117,6 +116,10 @@ int main() {
 						{
 							tgt_vel = 22.1;
 						}
+					}
+					else
+					{
+						tgt_vel = 22.1;
 					}
 						// collision avoidance code: 
 
@@ -225,6 +228,7 @@ int main() {
 					{
 						double veldiff = ref_vel-tgt_vel;
 						bool change = fabs(veldiff)>vel_inc;
+						//cout<<" "<<change<<" ";
 						if(change)
 						{
 							if(veldiff<vel_inc)
@@ -236,6 +240,7 @@ int main() {
 								ref_vel-=vel_inc;
 							}
 						} 
+						std::cout<<" "<<ref_vel<<" ";
 						//std::cout<<ref_vel<<" ";
 						double N = (target_dist / (0.02 * ref_vel));
 						double x_point = x_add_on + (target_x) / N;
