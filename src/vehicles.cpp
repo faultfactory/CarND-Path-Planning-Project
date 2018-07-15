@@ -204,6 +204,10 @@ int VehicleField::getFowardCar(int lane)
   }
   return fwdId;
 }
+double VehicleField::getVehicleSpeed(int id)
+{
+  return localCars.at(id).s_dot;
+}
 
 double VehicleField::getFrenetTimeToCollision(int id)
 {
@@ -223,7 +227,7 @@ double VehicleField::getFrenetTimeToCollision(int id)
     double b = tgtPtr->second.s_dot - ego_ptr->s_dot;
     double c = -1 * tgtPtr->second.s_rel;
 
-    double discriminant = b * b - 4 * a * c;
+    double discriminant = b * b - 4 * a * c; 
 
     if (discriminant > 0)
     {

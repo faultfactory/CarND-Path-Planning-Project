@@ -96,6 +96,8 @@ int main() {
 					//std::cout<<"updated local cars"<<std::endl;
 					int prev_size = previous_path_x.size();
 
+					
+					tgt_vel = 22.1;
 
 					extVehs.checkLaneRightCurrent(egoNow);
 					extVehs.checkLaneLeftCurrent(egoNow);
@@ -107,11 +109,18 @@ int main() {
 						{
 							std::cout<<"ttc "<<ttc<<std::endl;
 						}
+						if(ttc<12.0)
+						{
+							tgt_vel = extVehs.getVehicleSpeed(ahead_id);
+						}
+						if(ttc>20)
+						{
+							tgt_vel = 22.1;
+						}
 					}
 						// collision avoidance code: 
 
-					bool too_close = false; 
-					tgt_vel = 49.5;
+				
 
 					//std::cout<<"CheckingLane"<<std::endl;
 
@@ -228,7 +237,7 @@ int main() {
 							}
 						} 
 						//std::cout<<ref_vel<<" ";
-						double N = (target_dist / (0.02 * ref_vel / 2.24));
+						double N = (target_dist / (0.02 * ref_vel));
 						double x_point = x_add_on + (target_x) / N;
 						double y_point = s(x_point);
 
