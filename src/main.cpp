@@ -101,8 +101,12 @@ int main() {
 					extVehs.checkLaneLeftCurrent(egoNow);
 					int ahead_id = extVehs.getFowardCar(1);
 					if(ahead_id != -1)
-					{
-						std::cout<<ahead_id<<" "<<extVehs.getFrenetTimeToCollision(ahead_id);
+					{	
+						double ttc = extVehs.getFrenetTimeToCollision(ahead_id);
+						if(ttc>0)
+						{
+							std::cout<<"ttc "<<ttc<<std::endl;
+						}
 					}
 						// collision avoidance code: 
 

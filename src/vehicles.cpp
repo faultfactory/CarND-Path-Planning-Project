@@ -236,6 +236,17 @@ double VehicleField::getFrenetTimeToCollision(int id)
       {
         return rts[1];
       }
+      else if(rts[0] > 0 && rts[1]>0)
+      {
+        if(rts[0]>rts[1])
+        {
+          return rts[0];
+        }
+        else
+        {
+          return rts[1];
+        }
+      }
     }
     else if (discriminant == 0)
     {
