@@ -59,12 +59,13 @@ int main() {
 	double tgt_vel = 22.1;
 	VehicleField extVehs(&egoVeh);
 	
-	h.onMessage([&track, &lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
+	h.onMessage([&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
 		//auto sdata = string(data).substr(0, length);
 		//cout << sdata << endl;
+		std::cout<<std::endl;
 		if (length && length > 2 && data[0] == '4' && data[1] == '2')
 		{
 			auto s = hasData(data);
@@ -104,15 +105,30 @@ int main() {
 					int ahead_id = extVehs.getFowardCar(1);
 					if(ahead_id != -1)
 					{	
+						double ahead_s = extVehs.getVehicleSDist(ahead_id);
 						double ttc = extVehs.getFrenetTimeToCollision(ahead_id);
+						std::cout<<"s "<<egoNow.s<<" AID "<<ahead_id;
 						if(ttc>0)
-							std::cout<<egoNow.s<<" "<<ahead_id<<" ttc "<<ttc<<std::endl;
+						{
+							//
 						}
-						if(ttc<12.0)
+						if(ttc>0 && ttc<4.0)
+						{
+							tgt_vel = max(0.0,extVehs.getVehicleSpeed(ahead_id)-5.0);
+						}
+						if(ahead_s>10 && ahead_s<20)
+						{
+							tgt_vel = 0.8*extVehs.getVehicleSpeed(ahead_id);
+						}
+						if(ahead_s>20 && ahead_s<40)
 						{
 							tgt_vel = extVehs.getVehicleSpeed(ahead_id);
 						}
-						if(ttc>20)
+						if(ahead_s>50 && ahead_s<60)					
+						{
+							tgt_vel = 1.2*extVehs.getVehicleSpeed(ahead_id);
+						}
+						if(ahead_s>60.0)
 						{
 							tgt_vel = 22.1;
 						}
@@ -240,7 +256,7 @@ int main() {
 								ref_vel-=vel_inc;
 							}
 						} 
-						std::cout<<" "<<ref_vel<<" ";
+						//std::cout<<" "<<ref_vel<<" ";
 						//std::cout<<ref_vel<<" ";
 						double N = (target_dist / (0.02 * ref_vel));
 						double x_point = x_add_on + (target_x) / N;

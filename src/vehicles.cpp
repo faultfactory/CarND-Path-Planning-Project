@@ -180,6 +180,12 @@ void VehicleField::checkLaneLeftCurrent(const VehicleFrame &egoNow)
   }
 }
 
+double VehicleField::getVehicleSDist(int id)
+{
+  return localCars.at(id).s_rel;
+}
+
+
 int VehicleField::getFowardCar(int lane)
 {
   double fwdDist = 9999.0;
@@ -206,7 +212,7 @@ int VehicleField::getFowardCar(int lane)
 }
 double VehicleField::getVehicleSpeed(int id)
 {
-  return localCars.at(id).s_dot;
+  return localCars.at(id).getMostRecentFrame().v_mag;
 }
 
 double VehicleField::getFrenetTimeToCollision(int id)
@@ -223,43 +229,54 @@ double VehicleField::getFrenetTimeToCollision(int id)
   {
     // create a polynomial comprised of the difference and solve for roots
     auto tgtPtr = localCars.find(id);
-    double a = tgtPtr->second.s_dot_dot - ego_ptr->s_dot_dot;
-    double b = tgtPtr->second.s_dot - ego_ptr->s_dot;
-    double c = -1 * tgtPtr->second.s_rel;
+    // double a = tgtPtr->second.s_dot_dot - ego_ptr->s_dot_dot;
+    // double b = tgtPtr->second.s_dot - ego_ptr->s_dot;
+    // double c = -1 * tgtPtr->second.s_rel;
 
-    double discriminant = b * b - 4 * a * c; 
+    // double discriminant = b * b - 4 * a * c; 
 
-    if (discriminant > 0)
-    {
-      auto rts = getRoots(a, b, c, discriminant);
-      if(rts[0] > 0 && rts[1] < 0)
-      {
-        return rts[0];
-      }
-      else if (rts[0] < 0 && rts[1] > 0)
-      {
-        return rts[1];
-      }
-      else if(rts[0] > 0 && rts[1]>0)
-      {
-        if(rts[0]>rts[1])
-        {
-          return rts[0];
-        }
-        else
-        {
-          return rts[1];
-        }
-      }
-    }
-    else if (discriminant == 0)
-    {
-      auto rts = getRoots(a, b, c, discriminant);
-      return rts[0];
-    }
-    else
-    {
-      return -1;
-    }
+    // if (discriminant > 0)
+    // {
+    //   auto rts = getRoots(a, b, c, discriminant);
+    //   if(rts[0] > 0 && rts[1] < 0)
+    //   {
+    //     return rts[0];
+    //   }
+    //   else if (rts[0] < 0 && rts[1] > 0)
+    //   {
+    //     return rts[1];
+    //   }
+    //   else if(rts[0] > 0 && rts[1]>0)
+    //   { 
+    //     if(rts[0]>rts[1])
+    //     {
+    //       return rts[0];
+    //     }
+    //     else
+    //     {
+    //       return rts[1];
+    //     }
+    //   }
+    // }
+    // else if (discriminant == 0)
+    // {
+    //   auto rts = getRoots(a, b, c, discriminant);
+    //   return rts[0];
+    // }
+    // else
+    // {
+    //   return -1;
+    // }
+    double relSpd = ego_ptr->getMostRecentFrame().v_mag - tgtPtr->second.getMostRecentFrame().v_mag;
+    std::cout<<"relSpd " <<relSpd<<" "<<" s_rel "<<tgtPtr->second.s_rel<<" ";
+    // TODO: Compute Rel Spd based on predictions
+    double closingTime = tgtPtr->second.s_rel/relSpd;
+    std::cout<<"ct "<<closingTime;
+    return closingTime;
+  
+
+    
+
+
   }
 }

@@ -34,6 +34,7 @@ public:
     	s = j[1]["s"];
     	d = j[1]["d"];
     	yaw = deg2rad(j[1]["yaw"]);
+      v_mag = (j[1]["speed"]);
     	v_mag *= 0.44704;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
     	lane = getLane(d);
     };                // Ego constructor.
@@ -63,8 +64,8 @@ class Vehicle
   // I am aware that this should be abstracted into a parent and two subclasses.
   // "God punishes those who optimze early"
   
-  const int bufferMax = 5;
-  const int estimationMin = 3;
+  const int bufferMax = 20;
+  const int estimationMin = 5;
   std::deque<VehicleFrame> buffer;
   public:
   Vehicle(VehicleFrame);
@@ -107,6 +108,7 @@ class VehicleField
   int getFowardCar(int lane);
   double getFrenetTimeToCollision(int id);
   double getVehicleSpeed(int id);
+  double getVehicleSDist(int id);
 };
 
 
