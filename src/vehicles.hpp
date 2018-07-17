@@ -109,6 +109,7 @@ class VehicleField
   void updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData);
   void checkLaneRightCurrent(const VehicleFrame &egoNow);
   void checkLaneLeftCurrent(const VehicleFrame &egoNow);
+  bool checkAdjacentLaneOccupancy(const VehicleFrame &egoNow, const int lane);
   int getFowardCar(int lane);
   double getFrenetTimeToCollision(int id);
   double getVehicleSpeed(int id);

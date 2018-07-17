@@ -10,11 +10,43 @@ Behavior::Behavior(Vehicle* ep, VehicleField* extp)
 }
 
 
+int Behavior::getLowestCostLane()
+{   
+    std::vector<double> costs;
+    double cost;
+    VehicleFrame egoNow = ego_ptr->getMostRecentFrame();
+    int currentLane = egoNow.lane; 
+    for(auto ln = lanes.begin(); ln!=lanes.end(); ln++)
+    {
+        cost = 0; 
+        if( *ln != currentLane)
+        {
+            cost += 10; 
+        }
+        if (ext_ptr->checkAdjacentLaneOccupancy(egoNow,*ln))
+        {
+            cost += 1000;
+        }
+        int ah_id = ext_ptr->getFowardCar(*ln);
+        if(ah_id != -1)
+        {
+            cost += 100 * ext_ptr->getVehicleSDist(ah_id);
+            cost += 10 * (spd_lim - ext_ptr->getVehicleSpeed(ah_id));
+        }
+        
+        costs.push_back(cost);
+
+    }
+    int min_pos = distance(costs.begin(),min_element(costs.begin(),costs.end()));
+    return min_pos;
+}
+
+
+
+
 void Behavior::keepLane(double *tgt_vel)
 {   
-
-    
-    int ahead_id = ext_ptr->getFowardCar(1);
+    int ahead_id = ext_ptr->getFowardCar(ego_ptr->getMostRecentFrame().lane);
     if(ahead_id != -1)
     {	
         
@@ -44,12 +76,12 @@ void Behavior::keepLane(double *tgt_vel)
         }
         if(ahead_s>60.0)
         {
-            *tgt_vel = 22.1;
+            *tgt_vel = spd_lim;
         }
     }
     else
     {
-        *tgt_vel = 22.1;
+        *tgt_vel = spd_lim;
     }
 
 

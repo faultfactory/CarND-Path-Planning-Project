@@ -181,6 +181,29 @@ void VehicleField::checkLaneLeftCurrent(const VehicleFrame &egoNow)
   }
 }
 
+bool VehicleField::checkAdjacentLaneOccupancy(const VehicleFrame &egoNow, const int lane)
+{
+  bool blocked = false; 
+  double my_s = egoNow.s;
+  for (auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+  {
+    if (car_iter->second.updated)
+    {
+      VehicleFrame tgtFrm = car_iter->second.getMostRecentFrame();
+      if (tgtFrm.lane == lane)
+      {
+        double s_rel = s_relative(my_s, tgtFrm.s);
+        if (s_rel < 4.0 && s_rel > -4.0)
+        {
+          blocked = true;
+        }
+      }
+    }
+  }
+  return blocked;
+}
+
+
 double VehicleField::getVehicleSDist(int id)
 {
   return localCars.at(id).s_rel;

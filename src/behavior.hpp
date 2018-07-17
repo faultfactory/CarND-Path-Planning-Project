@@ -21,31 +21,19 @@ public:
 
     Behavior(Vehicle* ep, VehicleField* extp);
     struct Plan createBehaviorPlan();
-    int lanes[3]= {0,1,2};
+    std::vector<int> lanes{0,1,2};
 
     void keepLane(double*);
-
-private:
     int getLowestCostLane();
+private:
+    
     double getLaneCost();
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
 
 public:
+
+
 
 };
 
 
-#endif
+#endif  

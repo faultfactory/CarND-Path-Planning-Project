@@ -58,7 +58,7 @@ int main() {
 	int lane = 1; 
 	Vehicle egoVeh;
 	double ref_vel = 0.0;
-	double tgt_vel = 22.1;
+	double tgt_vel = spd_lim;
 	VehicleField extVehs(&egoVeh);
 	Behavior plan(&egoVeh,&extVehs);
 	
@@ -107,17 +107,9 @@ int main() {
 					//std::cout<<"updated local cars"<<std::endl;
 					int prev_size = previous_path_x.size();
 
-					
-					
-
-					//extVehs.checkLaneRightCurrent(egoNow);
-					//extVehs.checkLaneLeftCurrent(egoNow);
 					plan.keepLane(&tgt_vel);
-						// collision avoidance code: 
-
-				
-
-					//std::cout<<"CheckingLane"<<std::endl;
+					// collision avoidance code: 
+					lane = plan.getLowestCostLane();
 
 					// Create vector of new points to fil
 					vector<double> ptsx;
@@ -193,7 +185,6 @@ int main() {
 					}
 					tk::spline s;
 					s.set_points(safex, safey);
-					//std::cout<<std::endl;
 
 					// Create display spline.
 					vector<double> next_x_vals;
