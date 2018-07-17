@@ -13,6 +13,7 @@
 #include "tic_toc.h"
 #include "track.h"
 #include "vehicles.hpp"
+#include "behavior.hpp"
 
 using namespace std;
 
@@ -59,15 +60,16 @@ int main() {
 	double ref_vel = 0.0;
 	double tgt_vel = 22.1;
 	VehicleField extVehs(&egoVeh);
+	Behavior plan(&egoVeh,&extVehs);
 	
-	h.onMessage([&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
+	h.onMessage([&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs, &plan](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
 		//auto sdata = string(data).substr(0, length);
 		//cout << sdata << endl;
 
-		std::cout<<std::endl;
+		//std::cout<<std::endl;
 		if (length && length > 2 && data[0] == '4' && data[1] == '2')
 		{
 			auto s = hasData(data);
@@ -110,41 +112,7 @@ int main() {
 
 					//extVehs.checkLaneRightCurrent(egoNow);
 					//extVehs.checkLaneLeftCurrent(egoNow);
-					int ahead_id = extVehs.getFowardCar(1);
-					if(ahead_id != -1)
-					{	
-						double ahead_s = extVehs.getVehicleSDist(ahead_id);
-						double ttc = extVehs.getFrenetTimeToCollision(ahead_id);
-						//std::cout<<"s "<<egoNow.s<<" AID "<<ahead_id;
-						if(ttc>0)
-						{
-							//
-						}
-						if(ttc>0 && ttc<4.0)
-						{
-							tgt_vel = max(0.0,extVehs.getVehicleSpeed(ahead_id)-5.0);
-						}
-						if(ahead_s>10 && ahead_s<20)
-						{
-							tgt_vel = 0.8*extVehs.getVehicleSpeed(ahead_id);
-						}
-						if(ahead_s>20 && ahead_s<40)
-						{
-							tgt_vel = extVehs.getVehicleSpeed(ahead_id);
-						}
-						if(ahead_s>50 && ahead_s<60)					
-						{
-							tgt_vel = 1.2*extVehs.getVehicleSpeed(ahead_id);
-						}
-						if(ahead_s>60.0)
-						{
-							tgt_vel = 22.1;
-						}
-					}
-					else
-					{
-						tgt_vel = 22.1;
-					}
+					plan.keepLane(&tgt_vel);
 						// collision avoidance code: 
 
 				
@@ -155,7 +123,7 @@ int main() {
 					vector<double> ptsx;
 					vector<double> ptsy;
 
-					// Find current car state;
+					// Find current car state; 
 					double ref_x = egoNow.x;
 					double ref_y = egoNow.y;
 					double ref_yaw = egoNow.yaw;
