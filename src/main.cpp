@@ -10,6 +10,7 @@
 #include "json.hpp"
 #include "spline.h"
 #include "helpers.hpp"
+#include "tic_toc.h"
 #include "track.h"
 #include "vehicles.hpp"
 
@@ -38,7 +39,7 @@ string hasData(string s) {
   return "";
   
 }
-
+double loop_time_ms = 1000.0; 
 Track track = Track("../data/highway_map.csv");
 
 int main() {
@@ -49,7 +50,7 @@ int main() {
   // Waypoint map to read from
   ///std::string map_file_ = ;
   
-  
+  tic();
     
   double max_s = 6945.554;
 
@@ -65,6 +66,7 @@ int main() {
 		// The 2 signifies a websocket event
 		//auto sdata = string(data).substr(0, length);
 		//cout << sdata << endl;
+
 		std::cout<<std::endl;
 		if (length && length > 2 && data[0] == '4' && data[1] == '2')
 		{
@@ -79,8 +81,14 @@ int main() {
 
 				if (event == "telemetry")
 				{
+					// Capture loop time for state calcs
+					loop_time_ms = toc();
+					// reset clock
+					tic();
 				    egoVeh.addEgoFrame(j);
+					std::cout<<"sdot "<<egoVeh.s_dot<<" ";
 					VehicleFrame egoNow = egoVeh.getMostRecentFrame();
+					std::cout<<egoNow.v_mag;
 
 					// Previous path data given to the Planner
 					auto previous_path_x = j[1]["previous_path_x"];
@@ -107,7 +115,7 @@ int main() {
 					{	
 						double ahead_s = extVehs.getVehicleSDist(ahead_id);
 						double ttc = extVehs.getFrenetTimeToCollision(ahead_id);
-						std::cout<<"s "<<egoNow.s<<" AID "<<ahead_id;
+						//std::cout<<"s "<<egoNow.s<<" AID "<<ahead_id;
 						if(ttc>0)
 						{
 							//
@@ -285,10 +293,11 @@ int main() {
 					msgJson["next_y"] = next_y_vals;
 
 					auto msg = "42[\"control\"," + msgJson.dump() + "]";
-
+					
 					//this_thread::sleep_for(chrono::milliseconds(1000));
 					ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 				}
+				
 			}
 			else
 			{
@@ -296,7 +305,9 @@ int main() {
 				std::string msg = "42[\"manual\",{}]";
 				ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 			}
+			
 		}
+		
 	});
 
 	// We don't need this since we're not using HTTP but if it's removed the

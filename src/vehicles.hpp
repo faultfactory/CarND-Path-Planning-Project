@@ -9,6 +9,7 @@
 #define VEHICLES
 
 extern Track track;
+extern double loop_time_ms;
 
 class VehicleFrame
 {
@@ -22,6 +23,7 @@ public:
   double v_mag; // magnitude of velocity in m/s
   double yaw; // yaw direction
   int lane; //
+  double dt; // milliseconds since last frame; 
   
   
   VehicleFrame(nlohmann::json j)
@@ -37,6 +39,7 @@ public:
       v_mag = (j[1]["speed"]);
     	v_mag *= 0.44704;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
     	lane = getLane(d);
+      dt = loop_time_ms; 
     };                // Ego constructor.
     
     VehicleFrame(std::vector<double> v)
@@ -56,6 +59,7 @@ public:
     	s = v[5];
     	d = v[6];
     	lane = getLane(d);
+      dt = loop_time_ms;
     } //sensor fusion construct
 };
 
@@ -64,8 +68,8 @@ class Vehicle
   // I am aware that this should be abstracted into a parent and two subclasses.
   // "God punishes those who optimze early"
   
-  const int bufferMax = 20;
-  const int estimationMin = 5;
+  const int bufferMax = 10;
+  const int estimationMin = 3;
   std::deque<VehicleFrame> buffer;
   public:
   Vehicle(VehicleFrame);
@@ -83,7 +87,7 @@ class Vehicle
   
   VehicleFrame predictForward(double deltaT);
   VehicleFrame getMostRecentFrame() const;
-  void addEgoFrame(nlohmann::json j);
+  void addEgoFrame(nlohmann::json j  );
   void addFrame(VehicleFrame);
   void estimateValues();
 };

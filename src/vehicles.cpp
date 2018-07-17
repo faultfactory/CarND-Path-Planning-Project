@@ -1,6 +1,6 @@
 #include "vehicles.hpp"
 #include <numeric>
-#include "tic_toc.h"
+
 
 Vehicle::Vehicle(){};
 Vehicle::Vehicle(VehicleFrame vf)
@@ -40,11 +40,11 @@ void Vehicle::estimateValues()
   std::vector<double> s_dot_dot_list;
   for (int i = 1; i < buffer.size(); i++)
   {
-    s_dot_list.push_back(buffer[i].s - buffer[i - 1].s);
-    d_dot_list.push_back(buffer[i].d - buffer[i - 1].d);
+    s_dot_list.push_back(1000.0*(buffer[i].s - buffer[i - 1].s)/double(buffer[i].dt));
+    d_dot_list.push_back(1000.0*(buffer[i].d - buffer[i - 1].d)/double(buffer[i].dt));
     if (i > 1)
     {
-      s_dot_dot_list.push_back(s_dot_list[i] - s_dot_list[i - 1]);
+      s_dot_dot_list.push_back(1000.0*(s_dot_list[i] - s_dot_list[i - 1])/double(buffer[i].dt));
     }
   }
 
@@ -96,6 +96,7 @@ VehicleFrame Vehicle::predictForward(double deltaT)
 
 void VehicleField::updateLocalCars(const VehicleFrame &egoNow, const std::vector<std::vector<double>> &incomingData)
 {
+  
   double myS = ego_ptr->getMostRecentFrame().s;
   //double myS = egoNow.s;
   for (auto i = incomingData.begin(); i != incomingData.end(); i++)
@@ -268,10 +269,10 @@ double VehicleField::getFrenetTimeToCollision(int id)
     //   return -1;
     // }
     double relSpd = ego_ptr->getMostRecentFrame().v_mag - tgtPtr->second.getMostRecentFrame().v_mag;
-    std::cout<<"relSpd " <<relSpd<<" "<<" s_rel "<<tgtPtr->second.s_rel<<" ";
+    //std::cout<<"relSpd " <<relSpd<<" "<<" s_rel "<<tgtPtr->second.s_rel<<" ";
     // TODO: Compute Rel Spd based on predictions
     double closingTime = tgtPtr->second.s_rel/relSpd;
-    std::cout<<"ct "<<closingTime;
+    //std::cout<<"ct "<<closingTime;
     return closingTime;
   
 

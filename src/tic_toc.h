@@ -20,11 +20,19 @@ void tic()
 }
 
 
-void toc()
+void toc_print()
 {
     Clock::time_point t1 = Clock::now();
     milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
     std::cout <<"Elapsed time is "<< ms.count() << " milliseconds\n";
+}
+
+// per: https://en.cppreference.com/w/cpp/chrono/duration/duration_cast
+double toc()
+{
+    Clock::time_point t1 = Clock::now();
+    std::chrono::duration<double, std::milli> fp_ms = t1 - t0;
+    return fp_ms.count();
 }
 
 #endif
