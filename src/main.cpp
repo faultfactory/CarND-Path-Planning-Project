@@ -86,9 +86,9 @@ int main() {
 					// reset clock
 					tic();
 				    egoVeh.addEgoFrame(j);
-					std::cout<<"sdot "<<egoVeh.s_dot<<" ";
+					//std::cout<<"sdot "<<egoVeh.s_dot<<" ";
 					VehicleFrame egoNow = egoVeh.getMostRecentFrame();
-					std::cout<<egoNow.v_mag;
+					//std::cout<<egoNow.v_mag;
 
 					// Previous path data given to the Planner
 					auto previous_path_x = j[1]["previous_path_x"];
