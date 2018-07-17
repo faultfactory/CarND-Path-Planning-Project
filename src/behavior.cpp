@@ -19,26 +19,62 @@ int Behavior::getLowestCostLane()
     for(auto ln = lanes.begin(); ln!=lanes.end(); ln++)
     {
         cost = 0; 
+        // I am adding a high cost as you go right for 2 reasons:
+        // 1. There is a defect in the simulator at one point
+        // telling me that i am outside the lane while i am clearly
+        // inside it.
+        // 2. From a legality and driver courtesty standpoint, it is 
+        // frowned upon to pass on the right. Although many drivers
+        // do not follow this rule if we are going to code behaviors,
+        // we should code good ones. 
+  
+        cost += *ln*100; 
+        // I want to add a small cost to doing a lane change at all
+        // to prevent oscillations and strange behavior
         if( *ln != currentLane)
         {
-            cost += 10; 
+            cost += 200; 
         }
+        // If a car is in the adjacent lane, the cost to go to that lane
+        // should be orders of magnitude higher
         if (ext_ptr->checkAdjacentLaneOccupancy(egoNow,*ln))
         {
-            cost += 1000;
+            cost += 100000;
         }
+        // Lanes with cars ahead of me will be costed accordingly. 
         int ah_id = ext_ptr->getFowardCar(*ln);
         if(ah_id != -1)
         {
-            cost += 100 * ext_ptr->getVehicleSDist(ah_id);
+            cost += 10 * (150.0 - ext_ptr->getVehicleSDist(ah_id));
             cost += 10 * (spd_lim - ext_ptr->getVehicleSpeed(ah_id));
         }
+        
         
         costs.push_back(cost);
 
     }
+
     int min_pos = distance(costs.begin(),min_element(costs.begin(),costs.end()));
-    return min_pos;
+
+    for(auto i: costs)
+    {
+        std::cout<<i<<" ";
+    }
+    std::cout<<std::endl;
+    // This corrects for if the cente
+    if(abs(min_pos-egoNow.lane)>1)
+    {
+        if(costs[egoNow.lane]>costs[1])
+        {
+            min_pos = 1; 
+        }
+        else
+        {
+            min_pos =egoNow.lane;
+        }
+        
+        }
+        return min_pos;
 }
 
 
@@ -53,7 +89,7 @@ void Behavior::keepLane(double *tgt_vel)
         double ahead_s = ext_ptr->getVehicleSDist(ahead_id);
         double ttc = ext_ptr->getFrenetTimeToCollision(ahead_id);
         double forwardCarSpeed = ext_ptr->getVehicleSpeed(ahead_id);
-        std::cout<<" AID "<<ahead_id<<std::endl;
+
         if(ttc>0)
         {
             //
@@ -64,15 +100,15 @@ void Behavior::keepLane(double *tgt_vel)
         }
         if(ahead_s>10 && ahead_s<20)
         {
-            *tgt_vel = 0.8*forwardCarSpeed;
+            *tgt_vel = min(0.8*forwardCarSpeed,spd_lim);
         }
-        if(ahead_s>20 && ahead_s<40)
+        if(ahead_s>20 && ahead_s<30)
         {
-            *tgt_vel = forwardCarSpeed;
+            *tgt_vel = min(forwardCarSpeed,spd_lim);
         }
         if(ahead_s>50 && ahead_s<60)					
         {
-            *tgt_vel = 1.2*forwardCarSpeed;
+            *tgt_vel = min(1.2*forwardCarSpeed,spd_lim);
         }
         if(ahead_s>60.0)
         {
@@ -83,6 +119,7 @@ void Behavior::keepLane(double *tgt_vel)
     {
         *tgt_vel = spd_lim;
     }
+
 
 
 

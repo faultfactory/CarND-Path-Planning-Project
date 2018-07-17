@@ -104,13 +104,13 @@ int main() {
 					
 					extVehs.updateLocalCars(egoNow,sensor_fusion);
 					
-					//std::cout<<"updated local cars"<<std::endl;
+
 					int prev_size = previous_path_x.size();
 
-					plan.keepLane(&tgt_vel);
+					plan.keepLane(&tgt_vel); 
 					// collision avoidance code: 
 					lane = plan.getLowestCostLane();
-
+					bool lane_change = (lane!=egoNow.lane);
 					// Create vector of new points to fil
 					vector<double> ptsx;
 					vector<double> ptsy;
@@ -152,6 +152,12 @@ int main() {
 
 					int wPoints = 3;
 					int sIncrement = 30;
+					if(lane_change)
+					{
+						sIncrement = 50;
+					}
+					
+					
 					for (int i = 1; i < (wPoints + 1); i++)
 					{
 						// This does not work unless you add lane to the function line
@@ -211,7 +217,7 @@ int main() {
 					{
 						double veldiff = ref_vel-tgt_vel;
 						bool change = fabs(veldiff)>vel_inc;
-						//cout<<" "<<change<<" ";
+	
 						if(change)
 						{
 							if(veldiff<vel_inc)
@@ -223,8 +229,7 @@ int main() {
 								ref_vel-=vel_inc;
 							}
 						} 
-						//std::cout<<" "<<ref_vel<<" ";
-						//std::cout<<ref_vel<<" ";
+						
 						double N = (target_dist / (0.02 * ref_vel));
 						double x_point = x_add_on + (target_x) / N;
 						double y_point = s(x_point);
