@@ -3,7 +3,7 @@
 #include <math.h>
 #include <vector>
 
-constexpr double spd_lim = 22.1;
+constexpr double spd_lim = 22.3;
 constexpr double vel_inc = 0.1;
 constexpr double max_s = 6945.554;
 constexpr double pi() { return M_PI; }

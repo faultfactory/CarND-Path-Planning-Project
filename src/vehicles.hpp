@@ -96,9 +96,9 @@ class VehicleField
 {
   Vehicle* ego_ptr;
  
-
-  const double searchAhead=150.0;
-  const double searchBehind=-150.0;
+  public:
+  const double searchAhead=70.0;
+  const double searchBehind=-70.0;
   const double max_s = 6945.554;
 
   std::map<int,Vehicle> localCars;

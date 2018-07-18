@@ -55,8 +55,8 @@ int Behavior::getLowestCostLane()
         int ah_id = ext_ptr->getFowardCar(*ln);
         if(ah_id != -1)
         {
-            cost += 10 * (150.0 - ext_ptr->getVehicleSDist(ah_id));
-            cost += 10 * (spd_lim - ext_ptr->getVehicleSpeed(ah_id));
+            cost += 11 * (ext_ptr->searchAhead - ext_ptr->getVehicleSDist(ah_id));
+            cost += 11 * (spd_lim - ext_ptr->getVehicleSpeed(ah_id));
         }
         
         
@@ -71,16 +71,20 @@ int Behavior::getLowestCostLane()
         std::cout<<i<<" ";
     }
     std::cout<<std::endl;
-    // This corrects for if the cente
+    // This blocks double lane changes.
+    // it also helps in situations where the center lane is not 
+    // the best lane but being there allows for a transition to 
+    // a clear edge lane;
+    double bridgeLaneCost = 300;
     if(abs(min_pos-egoNow.lane)>1)
     {
-        if(costs[egoNow.lane]>costs[1])
+        if((bridgeLaneCost+costs[egoNow.lane])>costs[1])
         {
             min_pos = 1; 
         }
         else
         {
-            min_pos =egoNow.lane;
+            min_pos = egoNow.lane;
         }
         
         }
@@ -93,6 +97,12 @@ int Behavior::getLowestCostLane()
 void Behavior::keepLane(double *tgt_vel)
 {   
     int ahead_id = ext_ptr->getFowardCar(ego_ptr->getMostRecentFrame().lane);
+    setFollowingSpeed(tgt_vel,ahead_id);
+};
+
+
+void Behavior::setFollowingSpeed(double *tgt_vel, int ahead_id)
+{   
     if(ahead_id != -1)
     {	
         
@@ -104,7 +114,7 @@ void Behavior::keepLane(double *tgt_vel)
         {
             //
         }
-        if(ttc>0 && ttc<2.0 || ahead_s<8)
+        if(ttc>0 && ttc<2.0 || ahead_s<4)
         {
             *tgt_vel = max(0.0,forwardCarSpeed-5.0);
         }
@@ -112,7 +122,7 @@ void Behavior::keepLane(double *tgt_vel)
         {
             *tgt_vel = min(0.8*forwardCarSpeed,spd_lim);
         }
-        if(ahead_s>20 && ahead_s<30)
+        if(ahead_s>15 && ahead_s<20)
         {
             *tgt_vel = min(forwardCarSpeed,spd_lim);
         }
@@ -129,8 +139,11 @@ void Behavior::keepLane(double *tgt_vel)
     {
         *tgt_vel = spd_lim;
     }
+};
 
 
-
-
+void Behavior::setLaneSpeed(double *tgt_vel,int lane)
+{   
+    int ahead_id = ext_ptr->getFowardCar(lane);
+    setFollowingSpeed(tgt_vel,ahead_id);
 };

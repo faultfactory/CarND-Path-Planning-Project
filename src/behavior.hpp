@@ -25,8 +25,10 @@ public:
 
     void keepLane(double*);
     int getLowestCostLane();
+    void setLaneSpeed(double *tgt_vel,int lane);
 private:
     
+    void setFollowingSpeed(double *tgt_vel, int ahead_id);
     double getLaneCost();
 
 public:

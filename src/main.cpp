@@ -114,6 +114,10 @@ int main() {
 					{
 						lane = plan.getLowestCostLane();
 					}
+					else
+					{
+						plan.setLaneSpeed(&tgt_vel,lane);
+					}
 					lane_change = (lane!=egoNow.lane);
 					if(!lane_change)
 					{
