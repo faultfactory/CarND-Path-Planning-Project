@@ -19,16 +19,26 @@ int Behavior::getLowestCostLane()
     for(auto ln = lanes.begin(); ln!=lanes.end(); ln++)
     {
         cost = 0; 
-        // I am adding a high cost as you go right for 2 reasons:
+        // I am adding a static cost function focusing on the center lane
+        // for  3 reasons:
         // 1. There is a defect in the simulator at one point
         // telling me that i am outside the lane while i am clearly
-        // inside it.
+        // inside it.This only happens in the outer most right lane. 
         // 2. From a legality and driver courtesty standpoint, it is 
         // frowned upon to pass on the right. Although many drivers
         // do not follow this rule if we are going to code behaviors,
-        // we should code good ones. 
-  
-        cost += *ln*100; 
+        // we should code good ones. This means we should not linger in the 
+        // left lane.
+        // 3. Crusing in the center lane allows us more options for passing
+        // without creating complex multi-step manuvers. 
+        if(*ln == 0)
+        {
+            cost +=150;
+        }
+        if(*ln == 2)
+        {
+            cost +=300;
+        }
         // I want to add a small cost to doing a lane change at all
         // to prevent oscillations and strange behavior
         if( *ln != currentLane)
@@ -94,11 +104,11 @@ void Behavior::keepLane(double *tgt_vel)
         {
             //
         }
-        if(ttc>0 && ttc<2.0 || ahead_s<10)
+        if(ttc>0 && ttc<2.0 || ahead_s<8)
         {
             *tgt_vel = max(0.0,forwardCarSpeed-5.0);
         }
-        if(ahead_s>10 && ahead_s<20)
+        if(ahead_s>10 && ahead_s<15)
         {
             *tgt_vel = min(0.8*forwardCarSpeed,spd_lim);
         }

@@ -61,8 +61,9 @@ int main() {
 	double tgt_vel = spd_lim;
 	VehicleField extVehs(&egoVeh);
 	Behavior plan(&egoVeh,&extVehs);
+	bool lane_change = false;
 	
-	h.onMessage([&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs, &plan](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
+	h.onMessage([&lane_change,&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs, &plan](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
@@ -107,10 +108,18 @@ int main() {
 
 					int prev_size = previous_path_x.size();
 
-					plan.keepLane(&tgt_vel); 
+					
 					// collision avoidance code: 
-					lane = plan.getLowestCostLane();
-					bool lane_change = (lane!=egoNow.lane);
+					if(!lane_change)
+					{
+						lane = plan.getLowestCostLane();
+					}
+					lane_change = (lane!=egoNow.lane);
+					if(!lane_change)
+					{
+						plan.keepLane(&tgt_vel); 
+					}
+					
 					// Create vector of new points to fil
 					vector<double> ptsx;
 					vector<double> ptsy;
