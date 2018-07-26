@@ -27,14 +27,15 @@ public:
     int getLowestCostLane();
     double checkLaneFuture(int lane,double forwardTime);
     double getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow);
+    
+    double getLaneFutureCost(int lane, int currentLane,  std::map<int,Vehicle> futureCars);
 
     
-
-    void setLaneSpeed(double *tgt_vel,int lane);
+    void setLaneChangeSpeed(double *tgt_vel, int tgtLane);
 private:
     
     void setFollowingSpeed(double *tgt_vel, int ahead_id);
-    double getLaneCost();
+    double getLaneFutureCost();
 
 public:
 // Print functions for developing algo

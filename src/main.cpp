@@ -108,14 +108,13 @@ int main() {
 
 					int prev_size = previous_path_x.size();
 
-					for(auto ln = plan.lanes.begin(); ln!=plan.lanes.end(); ln++)
-					{
-						plan.printFwdDdotdot(*ln);
-					}
-					
+					// for(auto ln = plan.lanes.begin(); ln!=plan.lanes.end(); ln++)
+					// {
+					// 	plan.printFwdDdotdot(*ln);
+					// }
+					// std::cout<<std::endl;
 
 
-					std::cout<<std::endl;
 					// collision avoidance code: 
 					if(!lane_change)
 					{
@@ -123,7 +122,7 @@ int main() {
 					}
 					else
 					{
-						plan.setLaneSpeed(&tgt_vel,lane);
+						plan.setLaneChangeSpeed(&tgt_vel,lane);
 					}
 					lane_change = (lane!=egoNow.lane);
 					if(!lane_change)

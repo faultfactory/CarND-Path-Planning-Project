@@ -39,7 +39,7 @@ void Behavior::printFwdDdotdot(int lane)
 
 // int Behavior::getLaneFutureCost(int lane,double forwardTime)
 // {
-    
+
 // }
 
 double Behavior::getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow)
@@ -63,13 +63,13 @@ double Behavior::getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow
     }
     if(lane == 2)
     {
-        cost +=300;
+        cost +=250;
     }
     // I want to add a small cost to doing a lane change at all
     // to prevent oscillations and strange behavior
     if( lane != currentLane)
     {
-        cost += 200; 
+        cost += 150; 
     }
     // If a car is in the adjacent lane, the cost to go to that lane
     // should be orders of magnitude higher
@@ -176,9 +176,55 @@ void Behavior::setFollowingSpeed(double *tgt_vel, int ahead_id)
     }
 };
 
+void Behavior::setLaneChangeSpeed(double *tgt_vel, int tgtLane)
+{
+    int ahead_id_old = ext_ptr->getFowardCar(ego_ptr->getMostRecentFrame().lane);
+    int ahead_id_new = ext_ptr->getFowardCar(tgtLane);
+    double currentSpeed = *tgt_vel; 
 
-void Behavior::setLaneSpeed(double *tgt_vel,int lane)
-{   
-    int ahead_id = ext_ptr->getFowardCar(lane);
-    setFollowingSpeed(tgt_vel,ahead_id);
+
+    if (ahead_id_old == -1 && ahead_id_new == -1)
+    {
+        *tgt_vel = spd_lim;
+    }
+    else if(ahead_id_new != -1 && ahead_id_old !=-1)
+    {
+
+        double old_lane_speed = ext_ptr->getVehicleSpeed(ahead_id_old);
+        double new_lane_speed = ext_ptr->getVehicleSpeed(ahead_id_new);
+        double ahead_s_new =ext_ptr->getVehicleSDist(ahead_id_new);
+        double ahead_s_old =ext_ptr->getVehicleSDist(ahead_id_old);
+        double ahead_s = min(ahead_s_new,ahead_s_old);
+        double ttc = ext_ptr->getFrenetTimeToCollision(ahead_id_old);
+        double forwardCarSpeed = max(old_lane_speed,new_lane_speed);
+
+        if (ttc > 0)
+        {
+            //
+        }
+        if (ttc > 0 && ttc < 2.0 || ahead_s < 2)
+        {
+            *tgt_vel = max(0.0, forwardCarSpeed - 5.0);
+        }
+        if (ahead_s > 10 && ahead_s < 15)
+        {
+            *tgt_vel = min(0.8 * forwardCarSpeed, spd_lim);
+        }
+        if (ahead_s > 15 && ahead_s < 20)
+        {
+            *tgt_vel = min(forwardCarSpeed, spd_lim);
+        }
+        if (ahead_s > 50 && ahead_s < 60)
+        {
+            *tgt_vel = min(1.2 * forwardCarSpeed, spd_lim);
+        }
+        if (ahead_s > 60.0)
+        {
+            *tgt_vel = spd_lim;
+        }
+    }
+    else
+    {
+        *tgt_vel = spd_lim;
+    }
 };

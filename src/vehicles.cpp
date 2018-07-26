@@ -79,8 +79,46 @@ void Vehicle::resetVehicle()
   d_dot = 0.0;
   s_dot = 0.0;
   s_dot_dot = 0.0;
+  d_dot_dot = 0.0;
   s_rel = 9999;
 }
+
+Vehicle Vehicle::makeFutureExtVehicle(double deltaT)
+{
+  VehicleFrame futureFrame = predictForward(deltaT);
+  Vehicle out;
+  out.resetVehicle(); 
+  out.addFrame(futureFrame); 
+  out.s_dot = s_dot_dot * deltaT;
+  out.d_dot = d_dot_dot * deltaT;
+  return out; 
+}
+
+void Vehicle::setFutureSrel(VehicleFrame egoFuture)
+{ 
+  s_rel = s_relative(egoFuture.s, getMostRecentFrame().s);
+}
+
+VehicleFrame Vehicle::egoPredictForward(double deltaT, int tgtLane)
+{
+  // We will make some lazy assumptions with regard to velocity magnitude in this function as this data
+  // is not stored and is used to check lane availability and adjacency.
+  VehicleFrame egoFutureOut = predictForward(deltaT);
+  egoFutureOut.d = double(tgtLane)*4.0 - 2.0;
+  egoFutureOut.lane = getLane(egoFutureOut.d);
+}
+ 
+Vehicle Vehicle::makeFutureEgoVehicle(double deltaT,int tgtLane) 
+{
+  VehicleFrame futureFrame = egoPredictForward(deltaT,tgtLane);
+  Vehicle out;
+  out.resetVehicle(); 
+  out.addFrame(futureFrame); 
+  out.s_dot = s_dot_dot * deltaT;
+  out.d_dot = d_dot_dot * deltaT;
+  return out; 
+}
+
 
 // provide an estimated state for the vehicle at time delta T from most recent frame.
 VehicleFrame Vehicle::predictForward(double deltaT)
@@ -97,6 +135,8 @@ VehicleFrame Vehicle::predictForward(double deltaT)
   frameOut.y = xyvxvy[1];
   frameOut.v_mag = sqrt(xyvxvy[2] * xyvxvy[2] + xyvxvy[3] * xyvxvy[3]);
   frameOut.yaw = atan2(xyvxvy[3], xyvxvy[2]);
+  frameOut.dt = deltaT;
+  return frameOut;
 }
 
 void VehicleField::updateLocalCars(const VehicleFrame &egoNow, const std::vector<std::vector<double>> &incomingData)
@@ -317,4 +357,20 @@ double VehicleField::getFrenetTimeToCollisionQuad(int id)
     //std::cout<<"ct "<<closingTime;
     return closingTime;
   }
+}
+
+VehicleField VehicleField::makeFutureVehicleField(Vehicle* egoFuturePtr, double deltaT)
+{
+  VehicleField VFout(egoFuturePtr); 
+  for (auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
+  {
+    if (car_iter->second.updated)
+    {
+      Vehicle newVeh = car_iter->second.makeFutureExtVehicle(deltaT);
+      newVeh.setFutureSrel(egoFuturePtr->getMostRecentFrame());
+      VFout.localCars.emplace(std::make_pair(car_iter->first, newVeh));
+        
+    }
+  }
+  return VFout; 
 }

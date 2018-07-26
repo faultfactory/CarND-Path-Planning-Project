@@ -86,6 +86,12 @@ class Vehicle
   bool estimating; // value to tell external members to use or to ignore these state values
   bool updated; // tells Vehicle field whether this has been updated in this most recent frame
   
+  Vehicle makeFutureExtVehicle(double deltaT);
+  void setFutureSrel(VehicleFrame egoFuture);
+
+  Vehicle makeFutureEgoVehicle(double deltaT,int tgtLane);
+
+  VehicleFrame egoPredictForward(double deltaT, int tgtLane);
   VehicleFrame predictForward(double deltaT);
   VehicleFrame getMostRecentFrame() const;
   void addEgoFrame(nlohmann::json j  );
@@ -115,6 +121,8 @@ class VehicleField
   double getFrenetTimeToCollision(int id);
   double getVehicleSpeed(int id);
   double getVehicleSDist(int id);
+
+  VehicleField makeFutureVehicleField(Vehicle* egoFuturePtr, double deltaT);
 
 
   // Printer functions to prototype algorithms and output information to terminal
