@@ -39,7 +39,7 @@ public:
       v_mag = (j[1]["speed"]);
     	v_mag *= 0.44704;  // ego speed is delivered in mph but everything else is in meters, we will convert here and throw away mph
     	lane = getLane(d);
-      dt = loop_time_ms; 
+      dt = loop_time_ms / 1000.0; 
     };                // Ego constructor.
     
     VehicleFrame(std::vector<double> v)
@@ -59,7 +59,7 @@ public:
     	s = v[5];
     	d = v[6];
     	lane = getLane(d);
-      dt = loop_time_ms;
+      dt = loop_time_ms / 1000.0;
     } //sensor fusion construct
 };
 
@@ -68,8 +68,8 @@ class Vehicle
   // I am aware that this should be abstracted into a parent and two subclasses.
   // "God punishes those who optimze early"
   
-  const int bufferMax = 10;
-  const int estimationMin = 3;
+  const int bufferMax = 50;
+  const int estimationMin = 20;
   std::deque<VehicleFrame> buffer;
   public:
   Vehicle(VehicleFrame);
@@ -79,6 +79,7 @@ class Vehicle
   // These parameters might be most useful for determining collisions;
   double s_rel; // Relative s coordinate; 
   double d_dot;
+  double d_dot_dot;
   double s_dot;
   double s_dot_dot;
   
@@ -107,13 +108,18 @@ class VehicleField
     ego_ptr=ep;
   }
   void updateLocalCars(const VehicleFrame &egoNow,const std::vector<std::vector<double>> &incomingData);
-  void checkLaneRightCurrent(const VehicleFrame &egoNow);
-  void checkLaneLeftCurrent(const VehicleFrame &egoNow);
+
   bool checkAdjacentLaneOccupancy(const VehicleFrame &egoNow, const int lane);
   int getFowardCar(int lane);
+  double getFrenetTimeToCollisionQuad(int id);
   double getFrenetTimeToCollision(int id);
   double getVehicleSpeed(int id);
   double getVehicleSDist(int id);
+
+
+  // Printer functions to prototype algorithms and output information to terminal
+  void checkLaneRightCurrent(const VehicleFrame &egoNow);
+  void checkLaneLeftCurrent(const VehicleFrame &egoNow);
 };
 
 

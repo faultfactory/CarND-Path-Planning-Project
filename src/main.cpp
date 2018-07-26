@@ -108,7 +108,14 @@ int main() {
 
 					int prev_size = previous_path_x.size();
 
+					for(auto ln = plan.lanes.begin(); ln!=plan.lanes.end(); ln++)
+					{
+						plan.printFwdDdotdot(*ln);
+					}
 					
+
+
+					std::cout<<std::endl;
 					// collision avoidance code: 
 					if(!lane_change)
 					{
@@ -170,6 +177,7 @@ int main() {
 						sIncrement = 50;
 					}
 					
+
 					
 					for (int i = 1; i < (wPoints + 1); i++)
 					{

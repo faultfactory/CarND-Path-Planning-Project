@@ -205,4 +205,9 @@ std::vector<double> getRoots(double a, double b, double c,double discriminant)
 	return roots;
 }
 
+double polyeval(double a, double b, double c, double x)
+{
+	double out = a*x*x + b*x + c; 
+	return out; 
+}
   

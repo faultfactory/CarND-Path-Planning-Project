@@ -25,6 +25,11 @@ public:
 
     void keepLane(double*);
     int getLowestCostLane();
+    double checkLaneFuture(int lane,double forwardTime);
+    double getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow);
+
+    
+
     void setLaneSpeed(double *tgt_vel,int lane);
 private:
     
@@ -32,8 +37,9 @@ private:
     double getLaneCost();
 
 public:
-
-
+// Print functions for developing algo
+    void printFwdDdot(int);
+    void printFwdDdotdot(int);
 
 };
 

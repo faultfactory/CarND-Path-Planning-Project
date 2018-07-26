@@ -37,14 +37,17 @@ void Vehicle::estimateValues()
 
   std::vector<double> s_dot_list;
   std::vector<double> d_dot_list;
+  std::vector<double> d_dot_dot_list;
   std::vector<double> s_dot_dot_list;
   for (int i = 1; i < buffer.size(); i++)
   {
-    s_dot_list.push_back(1000.0*(buffer[i].s - buffer[i - 1].s)/double(buffer[i].dt));
-    d_dot_list.push_back(1000.0*(buffer[i].d - buffer[i - 1].d)/double(buffer[i].dt));
-    if (i > 1)
+    double dt = buffer.at(i).dt; 
+    s_dot_list.push_back((buffer.at(i).s - buffer.at(i-1).s)/dt);
+    d_dot_list.push_back((buffer.at(i).d - buffer.at(i-1).d)/dt);
+    if (i > 2)
     {
-      s_dot_dot_list.push_back(1000.0*(s_dot_list[i] - s_dot_list[i - 1])/double(buffer[i].dt));
+      s_dot_dot_list.push_back((s_dot_list.at(i-1)- s_dot_list.at(i-2))/dt);
+      d_dot_dot_list.push_back((d_dot_list.at(i-1) - d_dot_list.at(i-2))/dt);
     }
   }
 
@@ -54,10 +57,12 @@ void Vehicle::estimateValues()
   double s_dot_sum = std::accumulate(s_dot_list.begin(), s_dot_list.end(), 0.0);
   double s_dot_dot_sum = std::accumulate(s_dot_dot_list.begin(), s_dot_dot_list.end(), 0.0);
   double d_dot_sum = std::accumulate(d_dot_list.begin(), d_dot_list.end(), 0.0);
+  double d_dot_dot_sum = std::accumulate(d_dot_dot_list.begin(), d_dot_dot_list.end(), 0.0);
 
-  s_dot = s_dot_sum / s_dot_list.size();
-  s_dot_dot = s_dot_dot_sum / s_dot_dot_list.size();
-  d_dot = d_dot_sum / d_dot_list.size();
+  s_dot = s_dot_sum / double(s_dot_list.size());
+  s_dot_dot = s_dot_dot_sum / double(s_dot_dot_list.size());
+  d_dot = d_dot_sum / double(d_dot_list.size());
+  d_dot_dot = d_dot_dot_sum / double(d_dot_dot_list.size());
 }
 
 VehicleFrame Vehicle::getMostRecentFrame() const
@@ -70,7 +75,7 @@ void Vehicle::resetVehicle()
   // We will make some lazy assumptions with regard to velocity magnitude in this function as this data
   // is not stored and is used to check lane availability and adjacency.
   buffer.clear();
-  updated = false;
+  updated = false; 
   d_dot = 0.0;
   s_dot = 0.0;
   s_dot_dot = 0.0;
@@ -239,7 +244,7 @@ double VehicleField::getVehicleSpeed(int id)
   return localCars.at(id).getMostRecentFrame().v_mag;
 }
 
-double VehicleField::getFrenetTimeToCollision(int id)
+double VehicleField::getFrenetTimeToCollisionQuad(int id)
 {
   if (ego_ptr->estimating == false)
   {
@@ -253,54 +258,63 @@ double VehicleField::getFrenetTimeToCollision(int id)
   {
     // create a polynomial comprised of the difference and solve for roots
     auto tgtPtr = localCars.find(id);
-    // double a = tgtPtr->second.s_dot_dot - ego_ptr->s_dot_dot;
-    // double b = tgtPtr->second.s_dot - ego_ptr->s_dot;
-    // double c = -1 * tgtPtr->second.s_rel;
+    double a = tgtPtr->second.s_dot_dot - ego_ptr->s_dot_dot;
+    double b = tgtPtr->second.s_dot - ego_ptr->s_dot;
+    double c = -1 * tgtPtr->second.s_rel;
 
-    // double discriminant = b * b - 4 * a * c; 
+    double discriminant = b * b - 4 * a * c; 
 
-    // if (discriminant > 0)
-    // {
-    //   auto rts = getRoots(a, b, c, discriminant);
-    //   if(rts[0] > 0 && rts[1] < 0)
-    //   {
-    //     return rts[0];
-    //   }
-    //   else if (rts[0] < 0 && rts[1] > 0)
-    //   {
-    //     return rts[1];
-    //   }
-    //   else if(rts[0] > 0 && rts[1]>0)
-    //   { 
-    //     if(rts[0]>rts[1])
-    //     {
-    //       return rts[0];
-    //     }
-    //     else
-    //     {
-    //       return rts[1];
-    //     }
-    //   }
-    // }
-    // else if (discriminant == 0)
-    // {
-    //   auto rts = getRoots(a, b, c, discriminant);
-    //   return rts[0];
-    // }
-    // else
-    // {
-    //   return -1;
-    // }
+    if (discriminant > 0)
+    {
+      auto rts = getRoots(a, b, c, discriminant);
+      if(rts[0] > 0 && rts[1] < 0)
+      {
+        return rts[0];
+      }
+      else if (rts[0] < 0 && rts[1] > 0)
+      {
+        return rts[1];
+      }
+      else if(rts[0] > 0 && rts[1]>0)
+      { 
+        if(rts[0]>rts[1])
+        {
+          return rts[0];
+        }
+        else
+        {
+          return rts[1];
+        }
+      }
+    }
+    else if (discriminant == 0)
+    {
+      auto rts = getRoots(a, b, c, discriminant);
+      return rts[0];
+    }
+    else
+    {
+      return -1;
+    }  
+  }
+}
+
+  double VehicleField::getFrenetTimeToCollision(int id)
+{
+  if (ego_ptr->estimating == false)
+  {
+    return 999;
+  }
+  else if (localCars.find(id)->second.estimating == false)
+  {
+    return 999;
+  }
+  else
+  {
+    auto tgtPtr = localCars.find(id);
     double relSpd = ego_ptr->getMostRecentFrame().v_mag - tgtPtr->second.getMostRecentFrame().v_mag;
-    //std::cout<<"relSpd " <<relSpd<<" "<<" s_rel "<<tgtPtr->second.s_rel<<" ";
-    // TODO: Compute Rel Spd based on predictions
     double closingTime = tgtPtr->second.s_rel/relSpd;
     //std::cout<<"ct "<<closingTime;
     return closingTime;
-  
-
-    
-
-
   }
 }

@@ -9,6 +9,83 @@ Behavior::Behavior(Vehicle* ep, VehicleField* extp)
     ext_ptr = extp;
 }
 
+void Behavior::printFwdDdot(int lane)
+{
+    int id = ext_ptr->getFowardCar(lane);
+    if(id != -1 && ext_ptr->localCars.at(id).estimating )
+    {
+        std::cout<<ext_ptr->localCars.at(id).d_dot;
+    }
+    else
+    {
+        std::cout<<"NA";
+    }
+    std::cout<<" ";
+}
+
+void Behavior::printFwdDdotdot(int lane)
+{
+    int id = ext_ptr->getFowardCar(lane);
+    if(id != -1 && ext_ptr->localCars.at(id).estimating )
+    {
+        std::cout<<ext_ptr->localCars.at(id).d_dot_dot;
+    }
+    else
+    {
+        std::cout<<"NA";
+    }
+    std::cout<<" ";
+}
+
+// int Behavior::getLaneFutureCost(int lane,double forwardTime)
+// {
+    
+// }
+
+double Behavior::getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow)
+{
+    double cost = 0.0; 
+    // I am adding a static cost function focusing on the center lane
+    // for  3 reasons:
+    // 1. There is a defect in the simulator at one point
+    // telling me that i am outside the lane while i am clearly
+    // inside it.This only happens in the outer most right lane. 
+    // 2. From a legality and driver courtesty standpoint, it is 
+    // frowned upon to pass on the right. Although many drivers
+    // do not follow this rule if we are going to code behaviors,
+    // we should code good ones. This means we should not linger in the 
+    // left lane.
+    // 3. Crusing in the center lane allows us more options for passing
+    // without creating complex multi-step manuvers. 
+    if(lane == 0)
+    {
+        cost +=201;
+    }
+    if(lane == 2)
+    {
+        cost +=300;
+    }
+    // I want to add a small cost to doing a lane change at all
+    // to prevent oscillations and strange behavior
+    if( lane != currentLane)
+    {
+        cost += 200; 
+    }
+    // If a car is in the adjacent lane, the cost to go to that lane
+    // should be orders of magnitude higher
+    if (ext_ptr->checkAdjacentLaneOccupancy(egoNow,lane))
+    {
+        cost += 100000;
+    }
+    // Lanes with cars ahead of me will be costed accordingly. 
+    int ah_id = ext_ptr->getFowardCar(lane);
+    if(ah_id != -1)
+    {
+        cost += 11 * (ext_ptr->searchAhead - ext_ptr->getVehicleSDist(ah_id));
+        cost += 11 * (spd_lim - ext_ptr->getVehicleSpeed(ah_id));
+    }
+    return cost;
+}
 
 int Behavior::getLowestCostLane()
 {   
@@ -17,60 +94,18 @@ int Behavior::getLowestCostLane()
     VehicleFrame egoNow = ego_ptr->getMostRecentFrame();
     int currentLane = egoNow.lane; 
     for(auto ln = lanes.begin(); ln!=lanes.end(); ln++)
-    {
-        cost = 0; 
-        // I am adding a static cost function focusing on the center lane
-        // for  3 reasons:
-        // 1. There is a defect in the simulator at one point
-        // telling me that i am outside the lane while i am clearly
-        // inside it.This only happens in the outer most right lane. 
-        // 2. From a legality and driver courtesty standpoint, it is 
-        // frowned upon to pass on the right. Although many drivers
-        // do not follow this rule if we are going to code behaviors,
-        // we should code good ones. This means we should not linger in the 
-        // left lane.
-        // 3. Crusing in the center lane allows us more options for passing
-        // without creating complex multi-step manuvers. 
-        if(*ln == 0)
-        {
-            cost +=150;
-        }
-        if(*ln == 2)
-        {
-            cost +=300;
-        }
-        // I want to add a small cost to doing a lane change at all
-        // to prevent oscillations and strange behavior
-        if( *ln != currentLane)
-        {
-            cost += 200; 
-        }
-        // If a car is in the adjacent lane, the cost to go to that lane
-        // should be orders of magnitude higher
-        if (ext_ptr->checkAdjacentLaneOccupancy(egoNow,*ln))
-        {
-            cost += 100000;
-        }
-        // Lanes with cars ahead of me will be costed accordingly. 
-        int ah_id = ext_ptr->getFowardCar(*ln);
-        if(ah_id != -1)
-        {
-            cost += 11 * (ext_ptr->searchAhead - ext_ptr->getVehicleSDist(ah_id));
-            cost += 11 * (spd_lim - ext_ptr->getVehicleSpeed(ah_id));
-        }
-        
-        
-        costs.push_back(cost);
+    {          
+        costs.push_back(getLanePresentCost(*ln,currentLane,egoNow));
 
     }
 
     int min_pos = distance(costs.begin(),min_element(costs.begin(),costs.end()));
 
-    for(auto i: costs)
-    {
-        std::cout<<i<<" ";
-    }
-    std::cout<<std::endl;
+    // for(auto i: costs)
+    // {
+    //     std::cout<<i<<" ";
+    // }
+    // std::cout<<std::endl;
     // This blocks double lane changes.
     // it also helps in situations where the center lane is not 
     // the best lane but being there allows for a transition to 
