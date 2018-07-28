@@ -3,12 +3,6 @@
 
 #include "vehicles.hpp"
 
-struct Plan
-{
-    int targetLane;
-    double targetVelocity;
-};
-
 
 class Behavior
 {
@@ -20,22 +14,16 @@ class Behavior
 public:
 
     Behavior(Vehicle* ep, VehicleField* extp);
-    struct Plan createBehaviorPlan();
     std::vector<int> lanes{0,1,2};
 
     void keepLane(double*);
     int getLowestCostLane();
     double checkLaneFuture(int lane,double forwardTime);
-    double getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow);
-    
-    double getLaneFutureCost(int lane, int currentLane,  std::map<int,Vehicle> futureCars);
-
-    
+    double getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow); 
     void setLaneChangeSpeed(double *tgt_vel, int tgtLane);
-private:
     
+private:    
     void setFollowingSpeed(double *tgt_vel, int ahead_id);
-    double getLaneFutureCost();
 
 public:
 // Print functions for developing algo

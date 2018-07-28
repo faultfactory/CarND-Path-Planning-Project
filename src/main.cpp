@@ -46,11 +46,7 @@ Track track = Track("../data/highway_map.csv");
 int main() {
   uWS::Hub h;
 
-  // Load up map values for waypoint's x,y,s and d normalized normal vectors
-
-  // Waypoint map to read from
-  ///std::string map_file_ = ;
-  
+ 
   tic();
     
   double max_s = 6945.554;
@@ -108,14 +104,7 @@ int main() {
 
 					int prev_size = previous_path_x.size();
 
-					// for(auto ln = plan.lanes.begin(); ln!=plan.lanes.end(); ln++)
-					// {
-					// 	plan.printFwdDdotdot(*ln);
-					// }
-					// std::cout<<std::endl;
 
-
-					// collision avoidance code: 
 					if(!lane_change)
 					{
 						lane = plan.getLowestCostLane();
@@ -216,8 +205,7 @@ int main() {
 					vector<double> next_x_vals;
 					vector<double> next_y_vals;
 
-					// Re-use prior path points that were not consumed by the car.
-
+					
 					for (int i = 0; i < previous_path_x.size(); i++)
 					{
 						next_x_vals.push_back(previous_path_x[i]);

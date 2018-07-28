@@ -37,10 +37,6 @@ void Behavior::printFwdDdotdot(int lane)
     std::cout<<" ";
 }
 
-// int Behavior::getLaneFutureCost(int lane,double forwardTime)
-// {
-
-// }
 
 double Behavior::getLanePresentCost(int lane,int currentLane,VehicleFrame egoNow)
 {

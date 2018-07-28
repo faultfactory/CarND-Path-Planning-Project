@@ -1,3 +1,124 @@
+# Term 3 Path Planning / Behavior Project 
+
+## Objectives, Performance Summary and Improvements
+
+In accordance with the Project Rubric, the vehicle must be capable of traveling 4.32 miles without incident. 
+Incidents include collisions, maximum Jerk events, exceeding the speed limit and traveling within the confines of the selected lane. The vehicle must also not take longer than 3 seconds when executing lane changes.
+
+With the code reflected in the repository, the vehicle has consistent performance when the vehicles in the vicinity maintain a consistent path. Currently when running the simulator, I have consistently achieved distances of over 20 miles. This could be improved with the addition of further prediction methods, however due to work travel and the program timeline, I was not able to execute. In it's current form, the system will execute the majority of the track without issue. 
+
+I would like to be able develop a cost function that also relates to minimum distance between vehicles but have yet to do that. A further improvement would be to implement evasive actions based on the time to collision functions and to also use that value in lane cost functions.  A function that monitors conditions and aborts a lane change would also be a way to ensure better stability. 
+
+## Code Description
+
+### Externally Obtained Includes
+
+Per the Udacity policy, I take no credit for these libraries as I did not write them. Here, I want to breifly describe why I chose to include them.  
+
+#### tic_toc.h
+
+This function is analogous to the tic and toc functions in Matlab for reporting program execution time. I used this to capture the time between incoming data frames.  The code was copied from  http://programming-tips-and-tricks.blogspot.com/2017/05/tic-and-toc-functions-in-c-millisecond.html and modified for my needs to put out a double. 
+
+#### spline.h 
+
+After implementing the code initially from the Q&A video and reading various comments on the slack channel related to the path generation using the spline library, I chose to execute the path planning with that tool as it appears to create the necessary constraints required for curve generation. 
+
+In the github repo (https://github.com/ttk592/spline) the README states "It generates a piecewise polynomial function of degree 3 and is twice continuously differentiable everywhere. Boundary conditions default to zero-curvature at the end points."
+While this is not identical to the Jerk Minimizing Trajectory explained in the lesson, this allows for smooth transitions from spline to spline due to the endpoints of each spline generated produce zero curvature So long as the constraint of dt = 0.02 is respected when feeding successive points to the simulator.
+
+#### Track Class from Udacity Alumni Eric Lavigne 
+
+The Slack Workspace for the Udacity projects are a great way to avoid program setup and pitfalls. Due to traveling with a chromebook during a large section of project time, I leaned on this resource to write as much code as I could before being able to debug on the simulator. 
+During that time, I saw multiple Udacity students mentioning that the getXY functions producing erroneous data that would generate higher jerk trajectories. 
+I found a post from Eric Lavigne (https://carnd.slack.com/archives/C5ZS5SBA8/p1526189941000047) stating that he had eliminated that problem with a new Track class. This class utilized the spline library seen in the Q&A. Not wanting to get bogged down in errors from the original helpers, I chose to include this based on feedback in the channel.
+
+### Helper Functions
+
+I moved most of the helper functions from the provided main.cpp to another file called helpers.cpp. After pruning functions I no longer intended to use, I added other functions listed here.
+
+#### s_relative
+
+Since the track is a loop, the s value reported by the simulator resets at an endpoint. In order to calculate relative longitudinal distances in Frenet Coordinates, I created a function that generates accurate relative distances between two s values, even if one of the two vehicles is straddling the reset point.
+
+#### getLane
+
+This is a simple function to generate a lane integer from the Frenet coordinate d value. 
+
+#### getMapYaw
+
+I intended this function to be a means of verifying if a particular vehicle was diverging from a clean lane path along the S axis. In the end, I never added this level of prediction but after submission, but I intend to continue with this as an exercise.
+
+### Vehicle Data Handling
+
+I created 3 classes that would serve as the containers for both ego vehicle and external vehicles coming from sensor fusion.  Since I would likely be comparing quanities between the ego vehicle and the external vehicle, it made sense to me to create a data type that was uniform between them so I would be indexing into the same member.  
+
+#### Vehicle Frame
+This represents an single frame of incoming data for a specific vehicle, including the ego vehicle. In addition to the regular data, the time since the last frame is included as well as the vehicle lane so downstream calculation is not required.
+
+#### Vehicle
+
+This class and its member functions maintain a buffer of vehicle frames for the individual vehicles and maintain estimated values for the following quanitites as each vehicle frame is added to the buffer. 
+
+- s distance relative to ego Vehicle
+- s axis velocity
+- s axis acceleration
+- d axis velocity
+- d axis acceleration
+
+Besides maintaining and handling the incoming data for each Vehicle Instance, functions of this class are also used to provide a predicted Vehicle state based on the estimated values.
+
+#### Vehicle Field 
+
+This purpose of this class is to catalog and maintain information on the vehicles surrounding the ego vehicle. A std::map creates a new id, Vehicle pair for each vehicle that enters within a specified distance ahead or behind the ego vehicle. The entry for the vehicle is also reset when the vehicle exceeds that boundary so the next vehicle assigned that ID starts without any incorrect prior data. 
+
+Member functions in this class allow quick interrogation of the Vehicle state information for the vehicle ahead in a specified lane. By calling the member functions of the individual Vehicles, this class can also produce a 'fast forwarded' version of itself for prediction of the entire field of cars. 
+
+### Behavior Class
+
+The functions that execute the decision making policy for lane changes and setting the vehicle speed target are contained within the Behavior class. When constructing the Behavior class, a pointer to the Vehicle Field and Ego Vehicle is passed for easy access to that data. 
+
+##### Speed Member Functions
+
+keepLane and setLaneChangeSpeed are functions that take the lane information and determine the appropriate vehicle speed after polling the speed of the vehicles directly ahead of the ego Vehicle. They differ in that the setLaneChangeSpeed will allow for a shorter following distance for the vehicle in the departure lane.
+
+#### Lane Evaluation Functions
+
+In order to decide if a lane change should be executed a cost function is used to evaluate the state of vehicles in each lane. The cost functions are weighted according to importance.
+
+- Clear Adjacency: This is the highest weighted cost as the car should not change into a lane that is occupied at any time. 
+- Lane Speed: Cost increases linearly based on the difference between the speed of the car ahead and the speed limit.
+- Clear Lane Distance: Cost increases as the gap between the ego car and the car ahead decreases. 
+- Lane Change Execution Cost: There is a fixed cost associated with any lane that is not the current lane. This is to add some hysteresis to the decision making and prevent 'hunting' and successive lane changes unless the conditions truly do change significantly.  
+- "Bridge Lane" Cost: A direct lane change of two lanes is not allowed. If the lowest cost lane is two lane changes away, a "bridge cost" is added to the current lane to help incentivize the system to execute the change. 
+- Static Lane Costs: I am added a static cost function focusing on the center lane for a few reasons. Crusing in the center lane allows us more options for passing without creating complex multi-step lane maneuvers. From a legality and driver courtesty standpoint, it is frowned upon to pass on the right but it does happen. This means we should not linger in the left lane as it should be reserved for faster moving traffic. There is also a defect in the simulator at one point that will indicate a "Out of Lane" incorrectly. This occurs in the right lane only. I chose to use this cost to bias my car out of that lane unless passing. It is marginally successful depending on traffic conditions. 
+
+#### Prediction of Lane Cost
+
+Before executing a lane change, the system re-evaluates the lane costs with all of the vehicles, including the ego Vehicle, predicted forward by 1.5 seconds. This is intended to produce the vehicle positions and states after the lane change has occurred. If the targeted lane is not the most adventageous lane given these new conditions, the lane change is cancelled before it begins.
+
+With more time to work on the project, I would execute this check several more times in smaller increments. 
+
+### Path Planning
+
+The path planning approach taken is very closely based on the methodology outlined in the Q&A video. To demonstrate my knowledge of that process (vs a blind copy & paste), I will explain it in detail to the best of my ability.
+
+#### Prior Path Points && Path Initialization
+
+The simulator returns the previous, unused path waypoints that were sent in the previous transmission. The final two points from these are re-used to assure tangency and reduce the amount of points that need to be recalculated. 
+
+When the simulator starts up, there is no path provided, so in order to create a vector of smooth path points, an artificial starting point is created. This is done by evaluating the vehicles current position in cartesian coordinates and using the provided yaw information to provide another point behind it. 
+
+#### Adding Spline Knots
+
+Using the lane chosen by the behavior object, 3 way points are calculated in Frenet coordinates using the ego vehicle s position as a starting point. These points are 30 meters apart for maintaining a lane position but are expanded to 50 meters apart when changing lanes. This changes is done to produce a path with acceptable lateral acceleration and jerk. The d position is calculated simply by multiplying the desired lane integer by 4 and adding 2. 
+
+The cartesian coordinates are then converted to the vehicle reference frame and a check is done to add only pairs of points that provide a monotonically increasing x value. These two vectors of x and y points are used to define a new path spline from which to select waypoints.
+
+#### Speed Considerations and Simulator Timing. 
+
+
+## UDACITY ORIGINAL CONTENT BELOW THIS LINE
+
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
    

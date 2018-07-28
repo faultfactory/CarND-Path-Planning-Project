@@ -1,4 +1,5 @@
 build/*
+buildcheck/*
 install-ubuntu.sh
 .vscode/tasks.json
 .vscode/c_cpp_properties.json
