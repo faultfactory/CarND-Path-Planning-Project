@@ -14,13 +14,13 @@ typedef std::chrono::milliseconds milliseconds;
 
 static Clock::time_point t0 = Clock::now();
 
-void tic()
+inline void tic()
 {
  t0 = Clock::now();
 }
 
 
-void toc_print()
+inline void toc_print()
 {
     Clock::time_point t1 = Clock::now();
     milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
@@ -28,7 +28,7 @@ void toc_print()
 }
 
 // per: https://en.cppreference.com/w/cpp/chrono/duration/duration_cast
-double toc()
+inline double toc()
 {
     Clock::time_point t1 = Clock::now();
     std::chrono::duration<double, std::milli> fp_ms = t1 - t0;

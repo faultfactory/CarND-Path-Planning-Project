@@ -10,19 +10,23 @@
 #include "json.hpp"
 #include "spline.h"
 #include "helpers.hpp"
-#include "tic_toc.h"
 #include "track.h"
 #include "vehicles.hpp"
+#include "InputHandler.hpp"
 #include "behavior.hpp"
+#include <memory>
+
 
 using namespace std;
 
-extern Track track;
+std::shared_ptr<Track> track = std::make_shared<Track>("../data/highway_map.csv");
+std::shared_ptr<Track> Vehicle::track = track;
+std::shared_ptr<Track> InputHandler::track = track;
+
+
 
 // for convenience
 using json = nlohmann::json;
-
-// For converting back and forth between radians and degrees.
 
 
 // Checks if the SocketIO event has JSON data.
@@ -40,26 +44,24 @@ string hasData(string s) {
   return "";
   
 }
-double loop_time_ms = 1000.0; 
-Track track = Track("../data/highway_map.csv");
+
 
 int main() {
   uWS::Hub h;
 
- 
-  tic();
     
-  double max_s = 6945.554;
+    double max_s = 6945.554;
 
 	int lane = 1; 
-	Vehicle egoVeh;
+	std::shared_ptr<EgoVehicle> egoVeh = std::make_shared<EgoVehicle>();
 	double ref_vel = 0.0;
 	double tgt_vel = spd_lim;
-	VehicleField extVehs(&egoVeh);
-	Behavior plan(&egoVeh,&extVehs);
-	bool lane_change = false;
+	std::shared_ptr<VehicleField> extVehs=std::make_shared<VehicleField>(egoVeh);
+	InputHandler inputHandler(egoVeh,extVehs);
+	Behavior plan(egoVeh,extVehs);
+
 	
-	h.onMessage([&lane_change,&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs, &plan](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
+	h.onMessage([&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs, &plan, &inputHandler](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
@@ -81,31 +83,10 @@ int main() {
 				if (event == "telemetry")
 				{
 					// Capture loop time for state calcs
-					loop_time_ms = toc();
-					// reset clock
-					tic();
-				    egoVeh.addEgoFrame(j);
-					//std::cout<<"sdot "<<egoVeh.s_dot<<" ";
-					VehicleFrame egoNow = egoVeh.getMostRecentFrame();
-					//std::cout<<egoNow.v_mag;
+					inputHandler.processInputMessage(j);
+					VehicleFrame egoNow = egoVeh->getMostRecentFrame();
 
-					// Previous path data given to the Planner
-					auto previous_path_x = j[1]["previous_path_x"];
-					auto previous_path_y = j[1]["previous_path_y"];
-					// Previous path's end s and d values
-					double end_path_s = j[1]["end_path_s"];
-					double end_path_d = j[1]["end_path_d"];
-
-					// Sensor Fusion Data, a list of all other cars on the same side of the road.
-					vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
-					
-					extVehs.updateLocalCars(egoNow,sensor_fusion);
-					
-
-					int prev_size = previous_path_x.size();
-
-
-					if(!lane_change)
+					if(!plan.lane_change)
 					{
 						lane = plan.getLowestCostLane();
 					}
@@ -113,8 +94,9 @@ int main() {
 					{
 						plan.setLaneChangeSpeed(&tgt_vel,lane);
 					}
-					lane_change = (lane!=egoNow.lane);
-					if(!lane_change)
+					
+					plan.lane_change = (lane!=egoNow.lane);
+					if(!plan.lane_change)
 					{
 						plan.keepLane(&tgt_vel); 
 					}
@@ -130,6 +112,10 @@ int main() {
 
 					// Assure tangency for the current sate.
 					// if the previous was almost empty reset
+					auto previous_path_x = egoVeh->getPreviousPath().previous_path_x;
+					auto previous_path_y = egoVeh->getPreviousPath().previous_path_y;
+
+					int prev_size = previous_path_x.size();
 					if (prev_size < 2)
 					{
 						// Generate two points that align with c urrent state;
@@ -160,7 +146,7 @@ int main() {
 
 					int wPoints = 3;
 					int sIncrement = 30;
-					if(lane_change)
+					if(plan.lane_change)
 					{
 						sIncrement = 50;
 					}
@@ -170,7 +156,7 @@ int main() {
 					for (int i = 1; i < (wPoints + 1); i++)
 					{
 						// This does not work unless you add lane to the function line
-						vector<double> next_wp = track.sd_to_xy(egoNow.s + (sIncrement * i), (2 + 4 * lane));
+						vector<double> next_wp = track->sd_to_xy(egoNow.s + (sIncrement * i), (2 + 4 * lane));
 						ptsx.push_back(next_wp[0]);
 						ptsy.push_back(next_wp[1]);
 						

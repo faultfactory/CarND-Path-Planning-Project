@@ -2,12 +2,20 @@
 
 ## Objectives, Performance Summary and Improvements
 
-In accordance with the Project Rubric, the vehicle must be capable of traveling 4.32 miles without incident. 
-Incidents include collisions, maximum Jerk events, exceeding the speed limit and traveling within the confines of the selected lane. The vehicle must also not take longer than 3 seconds when executing lane changes.
+When I submitted this intially for Udacity, I had worked on it during a family vacation with my in-laws and frankly could not fully devote my mental space to it. The car would perform to meet the 4.32 mile requirement but would occasionally run into an issue where the erratic behavior of another vehicle would cause a collision. I told myself when I was afforded the time, I would revisit this as a learning exercise. I listed the following as improvements I wanted to make: 
 
-With the code reflected in the repository, the vehicle has consistent performance when the vehicles in the vicinity maintain a consistent path. Currently when running the simulator, I have consistently achieved distances of over 20 miles. This could be improved with the addition of further prediction methods, however due to work travel and the program timeline, I was not able to execute. In it's current form, the system will execute the majority of the track without issue. 
+Current Efforts:
 
-I would like to be able develop a cost function that also relates to minimum distance between vehicles but have yet to do that. A further improvement would be to implement evasive actions based on the time to collision functions and to also use that value in lane cost functions.  A function that monitors conditions and aborts a lane change would also be a way to ensure better stability. 
+- I have learned a great deal on the the topic of C++ architecture recently and look back at this project in horror. I would like to move the entire repository toward a state where multiple methods of path and behavior planning can be swapped in and out like modules with the appropriate interfaces standardized.Ideally I'd like to attempt this again with A*, dynamic programming, JMT. The goal is to move the repository toward a state where there exists a base architecture with different branches encompassing these variants.
+- I would like to be able to visualize the current state of certain 'decision variables' and run that alongside the simulator instead of attempting to rapidly decipher a stream of cout statements. This would be helpful as I attempt new methods that I am unfamiliar with.
+
+Future Improvements. 
+
+- Develop a better indication of the actual distance between vehicles throughout a manuever lane changes can be executed with more confidence instead of a fudged 'safety buffer'
+- A further improvement would be to implement evasive actions based on the time to collision functions and to also use that value in lane cost functions.  
+- A function that monitors conditions and aborts a lane change would also be a way to ensure better stability.
+- Incorporate evaluations from the standpoint of the external vehicle on predictions.
+
 
 ## Code Description
 
@@ -48,12 +56,20 @@ This is a simple function to generate a lane integer from the Frenet coordinate 
 
 I intended this function to be a means of verifying if a particular vehicle was diverging from a clean lane path along the S axis. In the end, I never added this level of prediction but after submission, but I intend to continue with this as an exercise.
 
+### Data Handling - InputHandler Class
+
+In order to effectively separate how the data is input to the framework from this example code itself, I created a class that parses and appropriately distributes the incoming data from the uWebSockets message. This functiona also attaches the delta time between input frames for state prediction and calculations.
+
 ### Vehicle Data Handling
 
 I created 3 classes that would serve as the containers for both ego vehicle and external vehicles coming from sensor fusion.  Since I would likely be comparing quanities between the ego vehicle and the external vehicle, it made sense to me to create a data type that was uniform between them so I would be indexing into the same member.  
 
 #### Vehicle Frame
 This represents an single frame of incoming data for a specific vehicle, including the ego vehicle. In addition to the regular data, the time since the last frame is included as well as the vehicle lane so downstream calculation is not required.
+
+##### EgoFrame
+
+This subclass adds storage for the prior path information from each iteration of the loop for the Ego vehicle.
 
 #### Vehicle
 
@@ -66,6 +82,10 @@ This class and its member functions maintain a buffer of vehicle frames for the 
 - d axis acceleration
 
 Besides maintaining and handling the incoming data for each Vehicle Instance, functions of this class are also used to provide a predicted Vehicle state based on the estimated values.
+
+##### Ego and External Vehicle
+
+This is a subclass of Vehicle that adds specific methods and storage elements for the External and Ego Vehicles. This specifically relates methods for calculating relative position and prediction. 
 
 #### Vehicle Field 
 
@@ -129,6 +149,8 @@ With a spline generated representing a continuation of our desired path, and aco
 That total distance is divided by the distance travled given this speeds duration and velocity. This provides a segmentation of the direct distance that can be applied to the X component. The X distance (30) is divided by that number to provide an X distance and that value is fed to the spline to generate the Y value. 
 
 This procedure loops, adding to the path until enough points are generated to restore the maximum desired number of path points is reached. When that is finished, these vehicle frame points are converted to map frame coordinates and then added to the previously unused path points returned from the last iteration. At this point the data is sent to the simulator and the loop resets. 
+ 
+
 
 ## UDACITY ORIGINAL CONTENT BELOW THIS LINE
 

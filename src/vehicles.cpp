@@ -9,10 +9,17 @@ Vehicle::Vehicle(VehicleFrame vf)
   estimating = false;
 }
 
-void Vehicle::addEgoFrame(nlohmann::json j)
+void EgoVehicle::addEgoFrame(EgoFrame egoFrm)
 {
-  VehicleFrame egoFrame(j);
-  addFrame(egoFrame);
+  addFrame(egoFrm);
+  previousPath = egoFrm.pathStatus;
+
+}
+
+void ExternalVehicle::addExternalFrame(VehicleFrame vf)
+{
+  addFrame(vf); 
+
 }
 
 void Vehicle::addFrame(VehicleFrame vf)
@@ -83,23 +90,21 @@ void Vehicle::resetVehicle()
   s_rel = 9999;
 }
 
-Vehicle Vehicle::makeFutureExtVehicle(double deltaT)
+ExternalVehicle ExternalVehicle::makeFutureExtVehicle(double deltaT)
 {
   VehicleFrame futureFrame = predictForward(deltaT);
-  Vehicle out;
-  out.resetVehicle(); 
-  out.addFrame(futureFrame); 
+  ExternalVehicle out(futureFrame);
   out.s_dot = s_dot_dot * deltaT;
   out.d_dot = d_dot_dot * deltaT;
   return out; 
 }
 
-void Vehicle::setFutureSrel(VehicleFrame egoFuture)
+void ExternalVehicle::setFutureSrel(VehicleFrame egoFuture)
 { 
   s_rel = s_relative(egoFuture.s, getMostRecentFrame().s);
 }
 
-VehicleFrame Vehicle::egoPredictForward(double deltaT, int tgtLane)
+VehicleFrame EgoVehicle::egoPredictForward(double deltaT, int tgtLane)
 {
   // We will make some lazy assumptions with regard to velocity magnitude in this function as this data
   // is not stored and is used to check lane availability and adjacency.
@@ -108,7 +113,7 @@ VehicleFrame Vehicle::egoPredictForward(double deltaT, int tgtLane)
   egoFutureOut.lane = getLane(egoFutureOut.d);
 }
  
-Vehicle Vehicle::makeFutureEgoVehicle(double deltaT,int tgtLane) 
+Vehicle EgoVehicle::makeFutureEgoVehicle(double deltaT,int tgtLane) 
 {
   VehicleFrame futureFrame = egoPredictForward(deltaT,tgtLane);
   Vehicle out;
@@ -118,7 +123,6 @@ Vehicle Vehicle::makeFutureEgoVehicle(double deltaT,int tgtLane)
   out.d_dot = d_dot_dot * deltaT;
   return out; 
 }
-
 
 // provide an estimated state for the vehicle at time delta T from most recent frame.
 VehicleFrame Vehicle::predictForward(double deltaT)
@@ -130,7 +134,7 @@ VehicleFrame Vehicle::predictForward(double deltaT)
   frameOut.s += s_dot * deltaT + s_dot_dot * deltaT * deltaT;
   frameOut.d += d_dot * deltaT;
   frameOut.lane = getLane(frameOut.d);
-  std::vector<double> xyvxvy = track.sd_to_xyv(frameOut.s, frameOut.d, s_dot, d_dot);
+  std::vector<double> xyvxvy = track->sd_to_xyv(frameOut.s, frameOut.d, s_dot, d_dot);
   frameOut.x = xyvxvy[0];
   frameOut.y = xyvxvy[1];
   frameOut.v_mag = sqrt(xyvxvy[2] * xyvxvy[2] + xyvxvy[3] * xyvxvy[3]);
@@ -139,43 +143,34 @@ VehicleFrame Vehicle::predictForward(double deltaT)
   return frameOut;
 }
 
-void VehicleField::updateLocalCars(const VehicleFrame &egoNow, const std::vector<std::vector<double>> &incomingData)
+void VehicleField::updateVehicle(double s_rel, VehicleFrame tmpVehFrm)
 {
-  
-  double myS = ego_ptr->getMostRecentFrame().s;
-  //double myS = egoNow.s;
-  for (auto i = incomingData.begin(); i != incomingData.end(); i++)
+  bool neighbor = (s_rel < searchAhead) && (s_rel > searchBehind);
+  int id = tmpVehFrm.id;
+  if (neighbor)
   {
-    VehicleFrame tmpVehFrm(*i);
-
-    double s_rel = s_relative(egoNow.s, tmpVehFrm.s);
-    bool neighbor = (s_rel < searchAhead) && (s_rel > searchBehind);
-    int id = tmpVehFrm.id;
-    if (neighbor)
+    if (localCars.count(id) == 0)
     {
-      if (localCars.count(id) == 0)
-      {
-        localCars.emplace(std::make_pair(id, Vehicle(tmpVehFrm)));
-      }
-      else
-      {
-        localCars.at(id).addFrame(tmpVehFrm);
-      }
-      localCars.at(id).updated = true;
-      localCars.at(id).s_rel = s_rel;
+      localCars.emplace(std::make_pair(id, ExternalVehicle(tmpVehFrm)));
     }
     else
     {
-      if (localCars.count(id) != 0)
+      localCars.at(id).addFrame(tmpVehFrm);
+    }
+    localCars.at(id).updated = true;
+    localCars.at(id).s_rel = s_rel;
+  }
+  else
+  {
+    if (localCars.count(id) != 0)
+    {
+      if (localCars.at(id).updated == true)
       {
-        if (localCars.at(id).updated == true)
-        {
-          localCars.at(id).resetVehicle();
-        }
+        localCars.at(id).resetVehicle();
       }
     }
   }
-}
+};
 
 void VehicleField::checkLaneRightCurrent(const VehicleFrame &egoNow)
 {
@@ -359,15 +354,15 @@ double VehicleField::getFrenetTimeToCollisionQuad(int id)
   }
 }
 
-VehicleField VehicleField::makeFutureVehicleField(Vehicle* egoFuturePtr, double deltaT)
+VehicleField VehicleField::makeFutureVehicleField(Vehicle egoFuture, double deltaT)
 {
-  VehicleField VFout(egoFuturePtr); 
+  VehicleField VFout(std::make_shared<Vehicle> (egoFuture)); 
   for (auto car_iter = localCars.begin(); car_iter != localCars.end(); car_iter++)
-  {
+  { 
     if (car_iter->second.updated)
     {
-      Vehicle newVeh = car_iter->second.makeFutureExtVehicle(deltaT);
-      newVeh.setFutureSrel(egoFuturePtr->getMostRecentFrame());
+      ExternalVehicle newVeh = car_iter->second.makeFutureExtVehicle(deltaT);
+      newVeh.setFutureSrel(egoFuture.getMostRecentFrame());
       VFout.localCars.emplace(std::make_pair(car_iter->first, newVeh));
         
     }

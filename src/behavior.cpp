@@ -1,7 +1,7 @@
 #include "behavior.hpp"
 
 
-Behavior::Behavior(Vehicle* ep, VehicleField* extp)
+Behavior::Behavior(shared_ptr<Vehicle> ep, shared_ptr<VehicleField> extp)
 {
     // pointer to ego vehicle
     ego_ptr = ep;
