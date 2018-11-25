@@ -15,6 +15,7 @@
 #include "InputHandler.hpp"
 #include "behavior.hpp"
 #include <memory>
+#include "TrajectoryGeneration.hpp"
 
 
 using namespace std;
@@ -22,8 +23,7 @@ using namespace std;
 std::shared_ptr<Track> track = std::make_shared<Track>("../data/highway_map.csv");
 std::shared_ptr<Track> Vehicle::track = track;
 std::shared_ptr<Track> InputHandler::track = track;
-
-
+std::shared_ptr<Track> TrajectoryGeneration::track = track;
 
 // for convenience
 using json = nlohmann::json;
@@ -58,6 +58,7 @@ int main() {
 	double tgt_vel = spd_lim;
 	std::shared_ptr<VehicleField> extVehs=std::make_shared<VehicleField>(egoVeh);
 	InputHandler inputHandler(egoVeh,extVehs);
+	TrajectoryGeneration trajectory(egoVeh);
 	Behavior plan(egoVeh,extVehs);
 
 	
