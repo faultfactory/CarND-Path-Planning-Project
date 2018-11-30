@@ -6,7 +6,7 @@ void TrajectorySet::clear()
     yPts.clear();
 }
 
-void TrajectoryGeneration::initializeStubTrajectory()
+void TrajectoryGeneration::initializeStubTrajectoryFromCurrent()
 {
     refState.x = egoNow.x;
     refState.y = egoNow.y;
@@ -24,15 +24,16 @@ void TrajectoryGeneration::initializeStubTrajectory()
     pathSeed.yPts.push_back(egoNow.y);
 };
 
-void TrajectoryGeneration::setStubTrajectory(PathStatus *prior)
+void TrajectoryGeneration::setStubTrajectory()
 {
-    int prev_size = prior->previous_path_x.size();
-    refState.x = prior->previous_path_x[prev_size - 1];
-    refState.y = prior->previous_path_y[prev_size - 1];
+    int prev_size = prior.previous_path_x.size();
+    refState.x = prior.previous_path_x[prev_size - 1];
+    refState.y = prior.previous_path_y[prev_size - 1];
 
-    double ref_x_prev = prior->previous_path_x[prev_size - 2];
-    double ref_y_prev = prior->previous_path_y[prev_size - 2];
+    double ref_x_prev = prior.previous_path_x[prev_size - 2];
+    double ref_y_prev = prior.previous_path_y[prev_size - 2];
     refState.yaw = atan2(refState.y - ref_y_prev, refState.x - ref_x_prev);
+    refState.velocity = sqrt(pow((refState.x - ref_x_prev), 2) + pow((refState.y - ref_y_prev), 2));
 
     pathSeed.xPts.push_back(ref_x_prev);
     pathSeed.xPts.push_back(refState.x);
@@ -49,11 +50,11 @@ void TrajectoryGeneration::resetTrajectoryData()
     int prev_size = prior.previous_path_x.size();
     if (prev_size < 2)
     {
-        initializeStubTrajectory();
+        initializeStubTrajectoryFromCurrent();
     }
     else
     {
-        setStubTrajectory(&prior);
+        setStubTrajectory();
     }
 };
 
@@ -110,4 +111,73 @@ void TrajectorySplineBased::setSpline()
         pathSeed.xPts.push_back(next_wp.at(0));
         pathSeed.yPts.push_back(next_wp.at(1));
     }
+}
+
+void TrajectorySplineBased::updateReferenceVelocity()
+{
+    double veldiff = pathReferenceVelocity - targetVelocity;
+    bool change = fabs(veldiff) > vel_inc;
+
+    if (change)
+    {
+        if (veldiff < vel_inc)
+        {
+            pathReferenceVelocity += vel_inc;
+        }
+        else if (veldiff > vel_inc)
+        {
+            pathReferenceVelocity -= vel_inc;
+        }
+    }
+    else
+    {
+        pathReferenceVelocity = targetVelocity;
+    }
+};
+
+void TrajectorySplineBased::generatePath()
+{
+    TrajectorySet vehicleFramePath;
+    double target_x = 30.0;
+    double target_y = (target_x);
+    double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
+    // TODO: Since we're not inside the loop for this calculation, there's a loss of accuracy. 
+    // Consider Recalculating dist information on an incremental basis. 
+
+    double x_cumulative = 0.0;
+    for (int i = 1; i <= pathCount - outputPath.xPts.size(); i++)
+    {
+
+        double N = (target_dist / (0.02 * pathReferenceVelocity));
+        double x_point = x_cumulative + (target_x) / N;
+        double y_point = spline(x_point);
+
+        x_cumulative = x_point;
+
+        double x_ref = x_point;
+        double y_ref = y_point;
+
+        //transform system back to world coordinates after defining path spline
+
+        ////// Transform2Vehicle
+
+        x_point = (x_ref * cos(refState.yaw) - y_ref * sin(refState.yaw));
+        y_point = (x_ref * sin(refState.yaw) + y_ref * cos(refState.yaw));
+
+        x_point += refState.x;
+        y_point += refState.y;
+
+        vehicleFramePath.xPts.push_back(x_point);
+        vehicleFramePath.yPts.push_back(y_point);
+    }
+}
+
+void TrajectorySplineBased::setTargetLane(int tL)
+{
+    targetLane = tL;
+}
+
+void TrajectorySplineBased::setTargetVelocity(double tV)
+{
+    targetVelocity = tV;
 }

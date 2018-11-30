@@ -32,6 +32,8 @@ class TrajectoryGeneration
                                                            targetLane(1){};
 
 
+    void resetTrajectoryData();
+
     protected: 
     bool priorPathValid; 
     const double systemCycleTime = 0.02; 
@@ -53,9 +55,9 @@ class TrajectoryGeneration
         pathSeed.clear();
         outputPath.clear();
     }
-    void initializeStubTrajectory();
-    void setStubTrajectory(PathStatus*);
-    void resetTrajectoryData();
+    void initializeStubTrajectoryFromCurrent();
+    void setStubTrajectory();
+    
     TrajectorySet transformToVehicle(TrajectorySet);
     TrajectorySet transformToWorld(TrajectorySet);
     void includePriorPathData();
@@ -65,22 +67,25 @@ class TrajectoryGeneration
 
 class TrajectorySplineBased : public TrajectoryGeneration
 {
+    public: 
     TrajectorySplineBased(std::shared_ptr<EgoVehicle> ep) : TrajectoryGeneration (ep),
                                                             waypoints(3),
                                                             waypoint_s_increment(30.0){};
+
+    virtual ~TrajectorySplineBased(){};
+
     tk::spline spline; 
 
     void setSpline();
     void setTargetLane(int);
-    void setTargetVelocity(int);
+    void setTargetVelocity(double);
 
     private:    
     int waypoints;
     double waypoint_s_increment;
-
-    
-    void setWaypointParameters(int,double);
-    void generatePath();
+    double pathReferenceVelocity;
+    void updateReferenceVelocity();
+    void generatePath();  
     
 };
 
