@@ -1,37 +1,44 @@
 #include "TrajectoryGeneration.hpp"
 
+void TrajectorySet::clear()
+{
+    xPts.clear();
+    yPts.clear();
+}
+
 void TrajectoryGeneration::initializeStubTrajectory()
 {
-    ref_position.x = egoNow.x;
-    ref_position.y = egoNow.y;
-    ref_position.yaw = egoNow.yaw;
+    refState.x = egoNow.x;
+    refState.y = egoNow.y;
+    refState.yaw = egoNow.yaw;
+    refState.velocity = egoNow.v_mag;
 
     // Generate two points that align with current state;
     double prev_car_x = egoNow.x - cos(egoNow.yaw);
     double prev_car_y = egoNow.y - sin(egoNow.yaw);
 
-    output.xPts.push_back(prev_car_x);
-    output.xPts.push_back(egoNow.x);
+    pathSeed.xPts.push_back(prev_car_x);
+    pathSeed.xPts.push_back(egoNow.x);
 
-    output.yPts.push_back(prev_car_y);
-    output.yPts.push_back(egoNow.y);
+    pathSeed.yPts.push_back(prev_car_y);
+    pathSeed.yPts.push_back(egoNow.y);
 };
 
 void TrajectoryGeneration::setStubTrajectory(PathStatus *prior)
 {
     int prev_size = prior->previous_path_x.size();
-    ref_position.x = prior->previous_path_x[prev_size - 1];
-    ref_position.y = prior->previous_path_y[prev_size - 1];
+    refState.x = prior->previous_path_x[prev_size - 1];
+    refState.y = prior->previous_path_y[prev_size - 1];
 
     double ref_x_prev = prior->previous_path_x[prev_size - 2];
     double ref_y_prev = prior->previous_path_y[prev_size - 2];
-    ref_position.yaw = atan2(ref_position.y - ref_y_prev, ref_position.x - ref_x_prev);
+    refState.yaw = atan2(refState.y - ref_y_prev, refState.x - ref_x_prev);
 
-    output.xPts.push_back(ref_x_prev);
-    output.xPts.push_back(ref_position.x);
+    pathSeed.xPts.push_back(ref_x_prev);
+    pathSeed.xPts.push_back(refState.x);
 
-    output.yPts.push_back(ref_y_prev);
-    output.yPts.push_back(ref_position.y);
+    pathSeed.yPts.push_back(ref_y_prev);
+    pathSeed.yPts.push_back(refState.y);
 }
 
 void TrajectoryGeneration::resetTrajectoryData()
@@ -59,10 +66,10 @@ TrajectorySet TrajectoryGeneration::transformToWorld(TrajectorySet vehicleFrameP
     {
         double x_ref = vehicleFramePts.xPts.at(i);
         double y_ref = vehicleFramePts.yPts.at(i);
-        double x_point = (x_ref * cos(ref_position.yaw) - y_ref * sin(ref_position.yaw));
-        double y_point = (x_ref * sin(ref_position.yaw) + y_ref * cos(ref_position.yaw));
-        x_point += ref_position.x;
-        y_point += ref_position.y;
+        double x_point = (x_ref * cos(refState.yaw) - y_ref * sin(refState.yaw));
+        double y_point = (x_ref * sin(refState.yaw) + y_ref * cos(refState.yaw));
+        x_point += refState.x;
+        y_point += refState.y;
 
         worldFrameOut.xPts.push_back(x_point);
         worldFrameOut.yPts.push_back(y_point);
@@ -75,27 +82,32 @@ TrajectorySet TrajectoryGeneration::transformToVehicle(TrajectorySet worldFrameP
     TrajectorySet vehicleFrameOut;
     int size = worldFramePts.xPts.size();
 
-    TrajectorySet safe;
-
-    double shift_x = worldFramePts.xPts[0] - ref_position.x;
-    double shift_y = worldFramePts.yPts[0] - ref_position.y;
-
-    safe.xPts.push_back(shift_x * cos(0 - ref_position.yaw) - (shift_y)*sin(0 - ref_position.yaw));
-    safe.yPts.push_back(shift_x * sin(0 - ref_position.yaw) + (shift_y)*cos(0 - ref_position.yaw));
-
     for (int i = 0; i < size; i++)
     {
-
-        double shift_x = worldFramePts.xPts[i] - ref_position.x;
-        double shift_y = worldFramePts.yPts[i] - ref_position.y;
-        double testx = shift_x * cos(0 - ref_position.yaw) - (shift_y)*sin(0 - ref_position.yaw);
-        // Test for duplicates and if not a duplicate, add to set.
-        // TODO: When points are converted to Eigen consider a 'safeAdd' or use a container with dupe checking.
-        if (safe.xPts[i - 1] != testx)
-        {
-            safe.xPts.push_back(shift_x * cos(0 - ref_position.yaw) - (shift_y)*sin(0 - ref_position.yaw));
-            safe.yPts.push_back(shift_x * sin(0 - ref_position.yaw) + (shift_y)*cos(0 - ref_position.yaw));
-        }
+        double shift_x = worldFramePts.xPts.at(i) - refState.x;
+        double shift_y = worldFramePts.yPts.at(i) - refState.y;
+        vehicleFrameOut.xPts.push_back(shift_x * cos(0 - refState.yaw) - (shift_y)*sin(0 - refState.yaw));
+        vehicleFrameOut.yPts.push_back(shift_x * sin(0 - refState.yaw) + (shift_y)*cos(0 - refState.yaw));
     }
-    return safe;
+    return vehicleFrameOut;
 };
+
+void TrajectoryGeneration::includePriorPathData()
+{
+    for (int i = 0; i < prior.previous_path_x.size(); i++)
+    {
+        outputPath.xPts.push_back(prior.previous_path_x.at(i));
+        outputPath.yPts.push_back(prior.previous_path_y.at(i));
+    }
+}
+
+void TrajectorySplineBased::setSpline()
+{
+    for (int i = 1; i < (waypoints + 1); i++)
+    {
+        // This does not work unless you add lane to the function line
+        vector<double> next_wp = track->sd_to_xy(track->xy_to_sd(refState.x, refState.y).at(0) + (waypoint_s_increment * i), (2 + 4 * targetLane));
+        pathSeed.xPts.push_back(next_wp.at(0));
+        pathSeed.yPts.push_back(next_wp.at(1));
+    }
+}

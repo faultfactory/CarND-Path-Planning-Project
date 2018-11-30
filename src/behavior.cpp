@@ -1,13 +1,7 @@
 #include "behavior.hpp"
 
 
-Behavior::Behavior(shared_ptr<Vehicle> ep, shared_ptr<VehicleField> extp)
-{
-    // pointer to ego vehicle
-    ego_ptr = ep;
-    // pointer to external cars
-    ext_ptr = extp;
-}
+Behavior::Behavior(shared_ptr<Vehicle> ep, shared_ptr<VehicleField> extp) : ego_ptr(ep),ext_ptr(extp){};
 
 void Behavior::printFwdDdot(int lane)
 {

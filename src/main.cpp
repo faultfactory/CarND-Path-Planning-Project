@@ -145,6 +145,7 @@ int main() {
 						ptsy.push_back(ref_y);
 					}
 
+					/// Not incorporated yet
 					int wPoints = 3;
 					int sIncrement = 30;
 					if(plan.lane_change)
@@ -153,7 +154,7 @@ int main() {
 					}
 					
 
-					
+					///// setSplineCode
 					for (int i = 1; i < (wPoints + 1); i++)
 					{
 						// This does not work unless you add lane to the function line
@@ -164,6 +165,8 @@ int main() {
 					}
 
 					// Coordinate rotation to vehicle frame
+
+
 					std::vector<double> safex;
 					std::vector<double> safey;
 
@@ -188,17 +191,7 @@ int main() {
 					tk::spline s;
 					s.set_points(safex, safey);
 
-					// Create display spline.
-					vector<double> next_x_vals;
-					vector<double> next_y_vals;
-
 					
-					for (int i = 0; i < previous_path_x.size(); i++)
-					{
-						next_x_vals.push_back(previous_path_x[i]);
-						next_y_vals.push_back(previous_path_y[i]);
-					}
-
 					// how to break the spline points;
 					double target_x = 30.0;
 					double target_y = s(target_x);
@@ -235,6 +228,9 @@ int main() {
 						double y_ref = y_point;
 
 						//transform system back to world coordinates after defining path spline
+						
+
+						////// Transform2Vehicle
 
 						x_point = (x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw));
 						y_point = (x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw));
@@ -296,8 +292,15 @@ int main() {
 		std::cout << "Disconnected" << std::endl;
 	});
 
+
+	// Need to play with this further to allow for other IP's to be 
+	// interrogated. Ideally the simlator would run externally so the 
+	// internal visualizer can run on this system. 
+	std::string hostIP("127.0.0.1");
+	//std::string hostIP("192.168.1.62");
+	const char * host = hostIP.c_str();
 	int port = 4567;
-	if (h.listen(port))
+	if (h.listen(host, port))
 	{
 		std::cout << "Listening to port " << port << std::endl;
   } else {
