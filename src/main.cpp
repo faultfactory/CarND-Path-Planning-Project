@@ -20,10 +20,10 @@
 
 using namespace std;
 
-std::shared_ptr<Track> track = std::make_shared<Track>("../data/highway_map.csv");
-std::shared_ptr<Track> Vehicle::track = track;
-std::shared_ptr<Track> InputHandler::track = track;
-std::shared_ptr<Track> TrajectoryGeneration::track = track;
+auto trackExternal = std::make_shared<Track>("../data/highway_map.csv");
+std::shared_ptr<Track> Vehicle::track = trackExternal;         // Static member of Vehicle class
+std::shared_ptr<Track> InputHandler::track = trackExternal;    // Static member of InputHandler class
+std::shared_ptr<Track> TrajectoryGeneration::track = trackExternal;  // Static member of TrajectoryGeneration class
 
 // for convenience
 using json = nlohmann::json;
@@ -48,21 +48,22 @@ string hasData(string s) {
 
 int main() {
   uWS::Hub h;
+	
 
     
     double max_s = 6945.554;
-
-	int lane = 1; 
-	std::shared_ptr<EgoVehicle> egoVeh = std::make_shared<EgoVehicle>();
-	double ref_vel = 0.0;
 	double tgt_vel = spd_lim;
+	int lane = 1; 
+
+
+	std::shared_ptr<EgoVehicle> egoVeh = std::make_shared<EgoVehicle>();
 	std::shared_ptr<VehicleField> extVehs=std::make_shared<VehicleField>(egoVeh);
 	InputHandler inputHandler(egoVeh,extVehs);
 	TrajectorySplineBased trajectory(egoVeh);
 	Behavior plan(egoVeh,extVehs);
 
 	
-	h.onMessage([&lane, &ref_vel, &tgt_vel,&egoVeh, &extVehs, &plan, &inputHandler, &trajectory](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
+	h.onMessage([&lane, &tgt_vel,&egoVeh, &extVehs, &plan, &inputHandler, &trajectory](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
@@ -101,20 +102,11 @@ int main() {
 					{
 						plan.keepLane(&tgt_vel); 
 					}
-					
-					// Create vector of new points to fil
-					vector<double> ptsx;
-					vector<double> ptsy;
-
-					// Find current car state; 
-					double ref_x = egoNow.x;
-					double ref_y = egoNow.y;
-					double ref_yaw = egoNow.yaw;
 
 					trajectory.resetTrajectoryData();
 					trajectory.setTargetVelocity(tgt_vel);
 					trajectory.setTargetLane(lane);
-
+					
 					/// Not incorporated yet
 					// int wPoints = 3;
 					// int sIncrement = 30;
@@ -124,41 +116,12 @@ int main() {
 					// }
 					trajectory.setSpline();
 
-					// Coordinate rotation to vehicle frame
-
-
-					std::vector<double> safex;
-					std::vector<double> safey;
-
-					double shift_x = ptsx[0] - ref_x;
-					double shift_y = ptsy[0] - ref_y;
-					
-					safex.push_back(shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw));
-					safey.push_back(shift_x * sin(0 - ref_yaw) + (shift_y)*cos(0 - ref_yaw));
-
-					for (int i = 1; i < ptsx.size(); i++)
-					{
-						
-						double shift_x = ptsx[i] - ref_x;
-						double shift_y = ptsy[i] - ref_y;
-						double testx=shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw);
-						if(safex[i-1]!=testx)
-						{
-							safex.push_back(shift_x * cos(0 - ref_yaw) - (shift_y)*sin(0 - ref_yaw));
-							safey.push_back(shift_x * sin(0 - ref_yaw) + (shift_y)*cos(0 - ref_yaw));
-						}
-					}
-					tk::spline s;
-					s.set_points(safex, safey);
-
-
-
-
+					auto nextPath = trajectory.generateNextPath();
 
 					json msgJson;
 					// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-					msgJson["next_x"] = next_x_vals;
-					msgJson["next_y"] = next_y_vals;
+					msgJson["next_x"] = nextPath.xPts;
+					msgJson["next_y"] = nextPath.yPts;
 
 					auto msg = "42[\"control\"," + msgJson.dump() + "]";
 					

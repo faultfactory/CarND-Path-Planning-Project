@@ -10,6 +10,7 @@ struct TrajectorySet
     std::vector<double> xPts;
     std::vector<double> yPts;
     
+    void concatenate(TrajectorySet);
     void clear();
 };
 
@@ -35,7 +36,7 @@ class TrajectoryGeneration
     void resetTrajectoryData();
 
     protected: 
-    bool priorPathValid; 
+    bool priorPathValid = false; // added for including eventual option to abandon path 
     const double systemCycleTime = 0.02; 
     int targetLane;
     double targetVelocity;
@@ -73,9 +74,7 @@ class TrajectorySplineBased : public TrajectoryGeneration
                                                             waypoint_s_increment(30.0){};
 
     virtual ~TrajectorySplineBased(){};
-
-    tk::spline spline; 
-
+    TrajectorySet generateNextPath();
     void setSpline();
     void setTargetLane(int);
     void setTargetVelocity(double);
@@ -86,7 +85,7 @@ class TrajectorySplineBased : public TrajectoryGeneration
     double pathReferenceVelocity;
     void updateReferenceVelocity();
     void generatePath();  
-    
+    tk::spline spline;     
 };
 
 #endif

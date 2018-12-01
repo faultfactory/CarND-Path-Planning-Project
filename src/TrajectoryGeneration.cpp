@@ -6,6 +6,12 @@ void TrajectorySet::clear()
     yPts.clear();
 }
 
+void TrajectorySet::concatenate(TrajectorySet tail)
+{
+    xPts.insert(xPts.end(),tail.xPts.begin(),tail.xPts.end());
+    yPts.insert(yPts.end(),tail.yPts.begin(),tail.yPts.end());
+}
+
 void TrajectoryGeneration::initializeStubTrajectoryFromCurrent()
 {
     refState.x = egoNow.x;
@@ -27,14 +33,38 @@ void TrajectoryGeneration::initializeStubTrajectoryFromCurrent()
 void TrajectoryGeneration::setStubTrajectory()
 {
     int prev_size = prior.previous_path_x.size();
+
     refState.x = prior.previous_path_x[prev_size - 1];
     refState.y = prior.previous_path_y[prev_size - 1];
+ 
+    double vref_x = prior.previous_path_x[prev_size - 2];
+    double vref_y = prior.previous_path_y[prev_size - 2];
+    refState.velocity = (sqrt(pow((refState.x - vref_x), 2) + pow((refState.y - vref_y), 2)))/(systemCycleTime);
 
-    double ref_x_prev = prior.previous_path_x[prev_size - 2];
-    double ref_y_prev = prior.previous_path_y[prev_size - 2];
+
+    double ref_x_prev;
+    double ref_y_prev;
+
+
+    // Guarantee monotonically increasing x values get added to spline. 
+    int setBack = 2;
+    bool same = true;
+    while (same == true)
+    {
+        same = (refState.x == prior.previous_path_x.at(prev_size - setBack));
+        if(!same)
+        {
+            ref_x_prev = prior.previous_path_x.at(prev_size - setBack);
+            ref_y_prev = prior.previous_path_y.at(prev_size - setBack);   
+        }
+        else
+        {
+            setBack++;
+        }
+    }
+
     refState.yaw = atan2(refState.y - ref_y_prev, refState.x - ref_x_prev);
-    refState.velocity = sqrt(pow((refState.x - ref_x_prev), 2) + pow((refState.y - ref_y_prev), 2));
-
+   
     pathSeed.xPts.push_back(ref_x_prev);
     pathSeed.xPts.push_back(refState.x);
 
@@ -48,7 +78,7 @@ void TrajectoryGeneration::resetTrajectoryData()
     egoNow = egoPtr->getMostRecentFrame();
     prior = egoPtr->getPreviousPath();
     int prev_size = prior.previous_path_x.size();
-    if (prev_size < 2)
+    if (prev_size <= 2 || !priorPathValid)
     {
         initializeStubTrajectoryFromCurrent();
     }
@@ -111,6 +141,9 @@ void TrajectorySplineBased::setSpline()
         pathSeed.xPts.push_back(next_wp.at(0));
         pathSeed.yPts.push_back(next_wp.at(1));
     }
+
+    TrajectorySet vehicleFrame = transformToVehicle(pathSeed);
+    spline.set_points(vehicleFrame.xPts, vehicleFrame.yPts);
 }
 
 void TrajectorySplineBased::updateReferenceVelocity()
@@ -120,11 +153,11 @@ void TrajectorySplineBased::updateReferenceVelocity()
 
     if (change)
     {
-        if (veldiff < vel_inc)
+        if (veldiff < 0.0)
         {
             pathReferenceVelocity += vel_inc;
         }
-        else if (veldiff > vel_inc)
+        else if (veldiff > 0.0)
         {
             pathReferenceVelocity -= vel_inc;
         }
@@ -141,35 +174,32 @@ void TrajectorySplineBased::generatePath()
     double target_x = 30.0;
     double target_y = (target_x);
     double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
-    // TODO: Since we're not inside the loop for this calculation, there's a loss of accuracy. 
-    // Consider Recalculating dist information on an incremental basis. 
-
+    // TODO: Since we're not inside the loop for this calculation, there's a loss of accuracy.
+    // Consider Recalculating dist information on an incremental basis.  
     double x_cumulative = 0.0;
+
+
+    //std::cout<<outputPath.xPts.size()<<std::endl;
     for (int i = 1; i <= pathCount - outputPath.xPts.size(); i++)
     {
-
+        updateReferenceVelocity();
         double N = (target_dist / (0.02 * pathReferenceVelocity));
         double x_point = x_cumulative + (target_x) / N;
         double y_point = spline(x_point);
 
         x_cumulative = x_point;
 
-        double x_ref = x_point;
-        double y_ref = y_point;
-
-        //transform system back to world coordinates after defining path spline
-
-        ////// Transform2Vehicle
-
-        x_point = (x_ref * cos(refState.yaw) - y_ref * sin(refState.yaw));
-        y_point = (x_ref * sin(refState.yaw) + y_ref * cos(refState.yaw));
-
-        x_point += refState.x;
-        y_point += refState.y;
-
         vehicleFramePath.xPts.push_back(x_point);
         vehicleFramePath.yPts.push_back(y_point);
     }
+    
+    outputPath = transformToWorld(vehicleFramePath);
+}
+
+TrajectorySet TrajectorySplineBased::generateNextPath()
+{
+    generatePath();
+    return outputPath;
 }
 
 void TrajectorySplineBased::setTargetLane(int tL)
