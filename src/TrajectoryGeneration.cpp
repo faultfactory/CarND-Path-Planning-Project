@@ -148,6 +148,7 @@ void TrajectorySplineBased::setSpline()
 
 void TrajectorySplineBased::updateReferenceVelocity()
 {
+
     double veldiff = pathReferenceVelocity - targetVelocity;
     bool change = fabs(veldiff) > vel_inc;
 
@@ -172,18 +173,26 @@ void TrajectorySplineBased::generatePath()
 {
     TrajectorySet vehicleFramePath;
     double target_x = 30.0;
-    double target_y = (target_x);
+    double target_y = spline(target_x);
     double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
     // TODO: Since we're not inside the loop for this calculation, there's a loss of accuracy.
     // Consider Recalculating dist information on an incremental basis.  
     double x_cumulative = 0.0;
+    if(priorPathValid)
+    {
+        includePriorPathData();
+    }
+    else
+    {
+        pathReferenceVelocity = refState.velocity;
+    }
 
 
-    //std::cout<<outputPath.xPts.size()<<std::endl;
-    for (int i = 1; i <= pathCount - outputPath.xPts.size(); i++)
+
+    for (int i = 0; i <= pathCount - outputPath.xPts.size(); i++)
     {
         updateReferenceVelocity();
-        double N = (target_dist / (0.02 * pathReferenceVelocity));
+        double N = (target_dist / (systemCycleTime * pathReferenceVelocity));
         double x_point = x_cumulative + (target_x) / N;
         double y_point = spline(x_point);
 
@@ -193,7 +202,7 @@ void TrajectorySplineBased::generatePath()
         vehicleFramePath.yPts.push_back(y_point);
     }
     
-    outputPath = transformToWorld(vehicleFramePath);
+    outputPath.concatenate(transformToWorld(vehicleFramePath));
 }
 
 TrajectorySet TrajectorySplineBased::generateNextPath()

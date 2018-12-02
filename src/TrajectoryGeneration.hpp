@@ -36,7 +36,7 @@ class TrajectoryGeneration
     void resetTrajectoryData();
 
     protected: 
-    bool priorPathValid = false; // added for including eventual option to abandon path 
+    bool priorPathValid = true; // added for including eventual option to abandon path 
     const double systemCycleTime = 0.02; 
     int targetLane;
     double targetVelocity;
