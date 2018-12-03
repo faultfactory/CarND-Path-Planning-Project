@@ -88,4 +88,25 @@ class TrajectorySplineBased : public TrajectoryGeneration
     tk::spline spline;     
 };
 
+class TrajectoryJMT : public TrajectoryGeneration
+{
+    public: 
+    TrajectoryJMT(std::shared_ptr<EgoVehicle> ep) : TrajectoryGeneration (ep),
+                                                            waypoints(3),
+                                                            waypoint_s_increment(30.0){};
+
+    virtual ~TrajectoryJMT(){};
+    TrajectorySet generateNextPath();
+    void setSpline();
+    void setTargetLane(int);
+    void setTargetVelocity(double);
+
+    private:    
+    int waypoints;
+    double waypoint_s_increment;
+    double pathReferenceVelocity;
+    void updateReferenceVelocity();
+    void generatePath();  
+};
+
 #endif

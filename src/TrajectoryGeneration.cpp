@@ -220,3 +220,5 @@ void TrajectorySplineBased::setTargetVelocity(double tV)
 {
     targetVelocity = tV;
 }
+
+void TrajectoryJMT::
