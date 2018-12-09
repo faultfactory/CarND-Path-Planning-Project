@@ -4,6 +4,7 @@
 #include <memory>
 #include "track.h"
 #include "vehicles.hpp"
+#include "Eigen-3.3/Dense"
 
 struct TrajectorySet
 {
@@ -90,14 +91,16 @@ class TrajectorySplineBased : public TrajectoryGeneration
 
 class TrajectoryJMT : public TrajectoryGeneration
 {
+    double manueverDuration = systemCycleTime*pathCount;
+    
     public: 
     TrajectoryJMT(std::shared_ptr<EgoVehicle> ep) : TrajectoryGeneration (ep),
                                                             waypoints(3),
                                                             waypoint_s_increment(30.0){};
 
     virtual ~TrajectoryJMT(){};
+    std::vector<double> SingleAxisJMT(std::vector<double> start, std::vector<double> end, double T);
     TrajectorySet generateNextPath();
-    void setSpline();
     void setTargetLane(int);
     void setTargetVelocity(double);
 

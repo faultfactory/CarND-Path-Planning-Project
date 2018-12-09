@@ -8,8 +8,8 @@ void TrajectorySet::clear()
 
 void TrajectorySet::concatenate(TrajectorySet tail)
 {
-    xPts.insert(xPts.end(),tail.xPts.begin(),tail.xPts.end());
-    yPts.insert(yPts.end(),tail.yPts.begin(),tail.yPts.end());
+    xPts.insert(xPts.end(), tail.xPts.begin(), tail.xPts.end());
+    yPts.insert(yPts.end(), tail.yPts.begin(), tail.yPts.end());
 }
 
 void TrajectoryGeneration::initializeStubTrajectoryFromCurrent()
@@ -36,26 +36,24 @@ void TrajectoryGeneration::setStubTrajectory()
 
     refState.x = prior.previous_path_x[prev_size - 1];
     refState.y = prior.previous_path_y[prev_size - 1];
- 
+
     double vref_x = prior.previous_path_x[prev_size - 2];
     double vref_y = prior.previous_path_y[prev_size - 2];
-    refState.velocity = (sqrt(pow((refState.x - vref_x), 2) + pow((refState.y - vref_y), 2)))/(systemCycleTime);
-
+    refState.velocity = (sqrt(pow((refState.x - vref_x), 2) + pow((refState.y - vref_y), 2))) / (systemCycleTime);
 
     double ref_x_prev;
     double ref_y_prev;
 
-
-    // Guarantee monotonically increasing x values get added to spline. 
+    // Guarantee monotonically increasing x values get added to spline.
     int setBack = 2;
     bool same = true;
     while (same == true)
     {
         same = (refState.x == prior.previous_path_x.at(prev_size - setBack));
-        if(!same)
+        if (!same)
         {
             ref_x_prev = prior.previous_path_x.at(prev_size - setBack);
-            ref_y_prev = prior.previous_path_y.at(prev_size - setBack);   
+            ref_y_prev = prior.previous_path_y.at(prev_size - setBack);
         }
         else
         {
@@ -64,7 +62,7 @@ void TrajectoryGeneration::setStubTrajectory()
     }
 
     refState.yaw = atan2(refState.y - ref_y_prev, refState.x - ref_x_prev);
-   
+
     pathSeed.xPts.push_back(ref_x_prev);
     pathSeed.xPts.push_back(refState.x);
 
@@ -176,9 +174,9 @@ void TrajectorySplineBased::generatePath()
     double target_y = spline(target_x);
     double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
     // TODO: Since we're not inside the loop for this calculation, there's a loss of accuracy.
-    // Consider Recalculating dist information on an incremental basis.  
+    // Consider Recalculating dist information on an incremental basis.
     double x_cumulative = 0.0;
-    if(priorPathValid)
+    if (priorPathValid)
     {
         includePriorPathData();
     }
@@ -186,8 +184,6 @@ void TrajectorySplineBased::generatePath()
     {
         pathReferenceVelocity = refState.velocity;
     }
-
-
 
     for (int i = 0; i <= pathCount - outputPath.xPts.size(); i++)
     {
@@ -201,7 +197,7 @@ void TrajectorySplineBased::generatePath()
         vehicleFramePath.xPts.push_back(x_point);
         vehicleFramePath.yPts.push_back(y_point);
     }
-    
+
     outputPath.concatenate(transformToWorld(vehicleFramePath));
 }
 
@@ -222,3 +218,30 @@ void TrajectorySplineBased::setTargetVelocity(double tV)
 }
 
 void TrajectoryJMT::
+
+
+// Produces polynomial coefficients for trajectory
+std::vector<double> TrajectoryJMT::SingleAxisJMT(std::vector<double> start, std::vector<double> end, double T)
+{
+    //TODO: Dig into Eigen documentation for built-in methods to make this cleaner
+    // (Not advanced initialization)
+    MatrixXd A = Eigen::MatrixXd(3, 3);
+    A.row(0) = {T * T * T, T * T * T * T, T * T * T * T};
+    A.row(1) = {3 * T * T, 4 * T * T * T, 5 * T * T * T * T};
+    A.row(2) = {6 * T, 12 * T * T, 20 * T * T * T};
+
+    MatrixXd B = MatrixXd(3, 1);
+    B << end[0] - (start[0] + start[1] * T + .5 * start[2] * T * T),
+        end[1] - (start[1] + start[2] * T),
+        end[2] - start[2];
+
+    auto C = A.inverse() * B;
+
+    vector<double> result = {start[0], start[1], .5 * start[2]};
+    for (int i = 0; i < C.size(); i++)
+    {
+        result.push_back(C.data()[i]);
+    }
+
+    return result;
+}
