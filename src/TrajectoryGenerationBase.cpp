@@ -136,25 +136,12 @@ TrajectorySet TrajectoryGeneration::generateNextPath()
     return outputPath;
 };
 
-void TrajectoryGeneration::updateReferenceVelocity() 
+void TrajectoryGeneration::setTargetLane(int tL)
 {
+    targetLane = tL;
+}
 
-    double veldiff = pathReferenceVelocity - targetVelocity;
-    bool change = fabs(veldiff) > vel_inc;
-
-    if (change)
-    {
-        if (veldiff < 0.0)
-        {
-            pathReferenceVelocity += vel_inc;
-        }
-        else if (veldiff > 0.0)
-        {
-            pathReferenceVelocity -= vel_inc;
-        }
-    }
-    else
-    {
-        pathReferenceVelocity = targetVelocity;
-    }
-};
+void TrajectoryGeneration::setTargetVelocity(double tV)
+{
+    targetVelocity = tV;
+}

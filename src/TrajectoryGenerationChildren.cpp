@@ -50,16 +50,32 @@ void TrajectorySplineBased::generatePath()
     outputPath.concatenate(transformToWorld(vehicleFramePath));
 }
 
-void TrajectorySplineBased::setTargetLane(int tL)
+
+void TrajectorySplineBased::updateReferenceVelocity() 
 {
-    targetLane = tL;
+
+    double veldiff = pathReferenceVelocity - targetVelocity;
+    bool change = fabs(veldiff) > vel_inc;
+
+    if (change)
+    {
+        if (veldiff < 0.0)
+        {
+            pathReferenceVelocity += vel_inc;
+        }
+        else if (veldiff > 0.0)
+        {
+            pathReferenceVelocity -= vel_inc;
+        }
+    }
+    else
+    {
+        pathReferenceVelocity = targetVelocity;
+    }
 }
 
-void TrajectorySplineBased::setTargetVelocity(double tV)
-{
-    targetVelocity = tV;
-}
 
+ 
 // Produces polynomial coefficients for trajectory
 JMTCoeffs_t TrajectoryJMT::singleAxisJMT(SingleAxisState start, SingleAxisState end, double T)
 {
@@ -138,12 +154,10 @@ void TrajectoryJMT::createStartConstraint()
     }
 }
 
-void TrajectoryJMT::createEndConstraint()
+void TrajectoryJMT::createEndConstraint(double endpointDistance, double endpointSVelocity)
 {
     double endSPos = track->xy_to_sd(refState.x, refState.y).at(0) + endpointDistance;
     double endDPos = (2 + 4 * targetLane);
-
-    double endpointSVelocity;
 
     vector<double> endpointTargets = track->sd_to_xyv(endSPos, endDPos, targetVelocity, 0.0);
     end.x.pos = endpointTargets.at(0);
@@ -166,9 +180,10 @@ void TrajectoryJMT::getNewPathCount()
     }
 }
 
-void calculateJMTPath()
+void TrajectoryJMT::calculateJMTPath(double pathDuration)
 {
-    computedPath.x = singleAxisJMT(start.x,end.x,)
+    computedPath.x = singleAxisJMT(start.x, end.x, pathDuration);
+    computedPath.y = singleAxisJMT(start.y, end.y, pathDuration);
 }
 
 void TrajectoryJMT::generatePath()
@@ -191,3 +206,5 @@ void TrajectoryJMT::generatePath()
     {
     }
 }
+
+

@@ -15,8 +15,6 @@ class TrajectorySplineBased : public TrajectoryGeneration
     virtual ~TrajectorySplineBased(){};
     
     void setSpline();
-    void setTargetLane(int);
-    void setTargetVelocity(double);
 
     private:    
     int waypoints;
@@ -63,25 +61,20 @@ class TrajectoryJMT : public TrajectoryGeneration
     int consumedIncrements;
     void getNewPathCount();
     double polyEval(JMTCoeffs_t,double);
-    void createEndConstraint();
+    void createEndConstraint(double,double);
     void createStartConstraint();
     JMTCoeffs_t differentiate(JMTCoeffs_t);
-
-    double endpointDistance;
-   
+ 
     public: 
-    TrajectoryJMT(std::shared_ptr<EgoVehicle> ep) : TrajectoryGeneration (ep),
-                                                    endpointDistance(30.0){};
-
+    TrajectoryJMT(std::shared_ptr<EgoVehicle> ep) : TrajectoryGeneration (ep){};
     virtual ~TrajectoryJMT(){};
-    JMTCoeffs_t singleAxisJMT(SingleAxisState start, SingleAxisState end, double T);
-    void calculateJMTPath();
 
-    void setTargetLane(int);
-    void setTargetVelocity(double);
+    JMTCoeffs_t singleAxisJMT(SingleAxisState start, SingleAxisState end, double T);
+    void calculateJMTPath(double pathDuration);
 
     protected:
     void generatePath() override; 
+    
          
 };
 
