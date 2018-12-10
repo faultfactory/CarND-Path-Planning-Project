@@ -15,7 +15,7 @@
 #include "InputHandler.hpp"
 #include "behavior.hpp"
 #include <memory>
-#include "TrajectoryGeneration.hpp"
+#include "TrajectoryGenerationChildren.hpp"
 
 
 using namespace std;

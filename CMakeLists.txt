@@ -7,7 +7,7 @@ add_definitions(-std=c++11)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/main.cpp src/helpers.cpp src/InputHandler.cpp src/vehicles.cpp src/track.cpp src/behavior.cpp src/TrajectoryGeneration.cpp)
+set(sources src/main.cpp src/helpers.cpp src/InputHandler.cpp src/vehicles.cpp src/track.cpp src/behavior.cpp src/TrajectoryGenerationBase.cpp src/TrajectoryGenerationChildren.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
