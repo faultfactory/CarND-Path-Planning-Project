@@ -42,7 +42,7 @@ struct JMTEndConstraint
     struct SingleAxisState y;
 };
 
-typedef std::vector<double> JMTCoeffs_t;
+typedef std::array<double,6> JMTCoeffs_t;
 
 struct JMTPathDefinition
 {
@@ -52,8 +52,6 @@ struct JMTPathDefinition
 
 class TrajectoryJMT : public TrajectoryGeneration
 {
-    
-    TrajectoryState targetEndState;
 
     JMTEndConstraint start;
     JMTEndConstraint end;

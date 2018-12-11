@@ -14,8 +14,6 @@ void TrajectorySplineBased::setSpline()
     spline.set_points(vehicleFrame.xPts, vehicleFrame.yPts);
 }
 
-
-
 void TrajectorySplineBased::generatePath()
 {
     TrajectorySet vehicleFramePath;
@@ -50,8 +48,7 @@ void TrajectorySplineBased::generatePath()
     outputPath.concatenate(transformToWorld(vehicleFramePath));
 }
 
-
-void TrajectorySplineBased::updateReferenceVelocity() 
+void TrajectorySplineBased::updateReferenceVelocity()
 {
 
     double veldiff = pathReferenceVelocity - targetVelocity;
@@ -74,8 +71,6 @@ void TrajectorySplineBased::updateReferenceVelocity()
     }
 }
 
-
- 
 // Produces polynomial coefficients for trajectory
 JMTCoeffs_t TrajectoryJMT::singleAxisJMT(SingleAxisState start, SingleAxisState end, double T)
 {
@@ -91,18 +86,18 @@ JMTCoeffs_t TrajectoryJMT::singleAxisJMT(SingleAxisState start, SingleAxisState 
         end.vel - (start.vel + start.acc * T),
         end.acc - start.acc;
 
-    auto C = A.inverse() * B;
+    Eigen::MatrixXd C = A.inverse() * B;
 
-    vector<double> result = {start.pos, start.vel, .5 * start.acc};
+    JMTCoeffs_t result = {start.pos, start.vel, .5 * start.acc};
     for (int i = 0; i < C.size(); i++)
     {
-        result.push_back(C.data()[i]);
+        result.data()[i + 3] = (C.data()[i]);
     }
 
     return result;
 }
 
-double polyEval(JMTCoeffs_t coeffs, double t)
+double TrajectoryJMT::polyEval(JMTCoeffs_t coeffs, double t)
 {
     double output = 0.0;
 
@@ -125,9 +120,10 @@ JMTCoeffs_t TrajectoryJMT::differentiate(JMTCoeffs_t input)
 
         if (i > 0)
         {
-            derivative.push_back(newTerm);
+            derivative.data()[i] = newTerm;
         }
     }
+    derivative.data()[5] = 0.0;
     return derivative;
 }
 
@@ -135,22 +131,24 @@ void TrajectoryJMT::createStartConstraint()
 {
     start.x.pos = refState.x;
     start.y.pos = refState.y;
-
     start.x.vel = refState.velocity * cos(refState.yaw);
     start.y.vel = refState.velocity * sin(refState.yaw);
-
     if (prior.previous_path_x.empty())
     {
+
         start.x.acc = 0.0;
         start.y.acc = 0.0;
     }
     else
     {
-        JMTCoeffs_t xAccelerationFunction = differentiate(differentiate(computedPath.x));
-        JMTCoeffs_t yAccelerationFunction = differentiate(differentiate(computedPath.y));
-
+        JMTCoeffs_t xVelocityFunction = differentiate(computedPath.x);
+        JMTCoeffs_t yVelocityFunction = differentiate(computedPath.y);
+        JMTCoeffs_t xAccelerationFunction = differentiate(xVelocityFunction);
+        JMTCoeffs_t yAccelerationFunction = differentiate(yVelocityFunction);
+        //std::cout << consumedIncrements << std::endl;
         start.x.acc = polyEval(xAccelerationFunction, consumedIncrements * systemCycleTime);
         start.y.acc = polyEval(yAccelerationFunction, consumedIncrements * systemCycleTime);
+        //std::cout << start.x.acc << " " << start.y.acc << std::endl;
     }
 }
 
@@ -158,6 +156,8 @@ void TrajectoryJMT::createEndConstraint(double endpointDistance, double endpoint
 {
     double endSPos = track->xy_to_sd(refState.x, refState.y).at(0) + endpointDistance;
     double endDPos = (2 + 4 * targetLane);
+
+    std::cout<<endSPos<<" "<<endDPos<<std::endl;
 
     vector<double> endpointTargets = track->sd_to_xyv(endSPos, endDPos, targetVelocity, 0.0);
     end.x.pos = endpointTargets.at(0);
@@ -170,7 +170,7 @@ void TrajectoryJMT::createEndConstraint(double endpointDistance, double endpoint
 
 void TrajectoryJMT::getNewPathCount()
 {
-    if (!priorPathValid)
+    if (priorPathValid)
     {
         consumedIncrements = pathCount - prior.previous_path_x.size();
     }
@@ -192,19 +192,17 @@ void TrajectoryJMT::generatePath()
     {
         includePriorPathData();
     }
-
     getNewPathCount();
+    if(consumedIncrements>30)
+  
     createStartConstraint();
-    createEndConstraint();
-    calculateJMTPath();
+    createEndConstraint(100.0, targetVelocity);
+    calculateJMTPath(5.0);
 
-
-
-
-
-    for (int i = 0; i <= pathCount - outputPath.xPts.size(); i++)
+    for (int i = 1; outputPath.xPts.size() <= pathCount; i++)
     {
+
+        outputPath.xPts.push_back(polyEval(computedPath.x, i * systemCycleTime));
+        outputPath.yPts.push_back(polyEval(computedPath.y, i * systemCycleTime));
     }
 }
-
-

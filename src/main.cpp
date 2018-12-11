@@ -59,7 +59,7 @@ int main() {
 	std::shared_ptr<EgoVehicle> egoVeh = std::make_shared<EgoVehicle>();
 	std::shared_ptr<VehicleField> extVehs=std::make_shared<VehicleField>(egoVeh);
 	InputHandler inputHandler(egoVeh,extVehs);
-	TrajectorySplineBased trajectory(egoVeh);
+	TrajectoryJMT trajectory(egoVeh);
 	Behavior plan(egoVeh,extVehs);
 
 	
@@ -102,7 +102,7 @@ int main() {
 					{
 						plan.keepLane(&tgt_vel); 
 					}
-
+					
 					trajectory.resetTrajectoryData();
 					trajectory.setTargetVelocity(tgt_vel);
 					trajectory.setTargetLane(lane);
@@ -114,7 +114,7 @@ int main() {
 					// {
 					// 	sIncrement = 50;
 					// }
-					trajectory.setSpline();
+					//trajectory.setSpline();
 
 					auto nextPath = trajectory.generateNextPath();
 

@@ -25,15 +25,17 @@ struct TrajectoryState
 
 class TrajectoryGeneration
 {
-
-    //
   public:
     TrajectoryGeneration(std::shared_ptr<EgoVehicle> ep) : egoPtr(ep),
                                                            pathCount(50),
                                                            targetLane(1){};
 
-    void resetTrajectoryData();
+    ~TrajectoryGeneration(){};
 
+    void resetTrajectoryData();
+    TrajectorySet generateNextPath();
+    void setTargetLane(int);
+    void setTargetVelocity(double);
   protected:
     bool priorPathValid = true; // added for including eventual option to abandon path
 
@@ -65,12 +67,10 @@ class TrajectoryGeneration
     TrajectorySet transformToVehicle(TrajectorySet);
     TrajectorySet transformToWorld(TrajectorySet);
     void includePriorPathData();
-    TrajectorySet generateNextPath();
-    virtual void generatePath();
+ 
+    virtual void generatePath(){};
     int pathCount;
 
-    void setTargetLane(int);
-    void setTargetVelocity(double);
     double endSVelocity;
     void calculateEndSVelocity();
 };

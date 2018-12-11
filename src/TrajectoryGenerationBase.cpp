@@ -47,7 +47,7 @@ void TrajectoryGeneration::setStubTrajectory()
     // Guarantee monotonically increasing x values get added to spline.
     int setBack = 2;
     bool same = true;
-    while (same == true)
+    while (same == true && setBack<prior.previous_path_x.size())
     {
         same = (refState.x == prior.previous_path_x.at(prev_size - setBack));
         if (!same)
